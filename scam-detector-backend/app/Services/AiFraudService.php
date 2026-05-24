@@ -10,12 +10,16 @@ class AiFraudService
 {
     public function isEnabled(): bool
     {
-        return (bool) config('ai.enabled') && filled(config('ai.openai.api_key'));
+        if (! (bool) config('ai.enabled')) {
+            return false;
+        }
+
+        return match (config('ai.provider')) {
+            'gemini' => filled(config('ai.gemini.api_key')),
+            default => filled(config('ai.openai.api_key')),
+        };
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
     public function analyze(string $inputType, string $content, array $ruleAnalysis): ?array
     {
         if (! $this->isEnabled()) {
@@ -23,15 +27,15 @@ class AiFraudService
         }
 
         try {
-            return $this->callOpenAi($inputType, $content, $ruleAnalysis);
+            return match (config('ai.provider')) {
+                'gemini' => $this->callGemini($inputType, $content, $ruleAnalysis),
+                default => $this->callOpenAi($inputType, $content, $ruleAnalysis),
+            };
         } catch (Throwable) {
             return null;
         }
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     private function callOpenAi(string $inputType, string $content, array $ruleAnalysis): array
     {
         $response = Http::withToken(config('ai.openai.api_key'))
@@ -47,11 +51,7 @@ class AiFraudService
                     ],
                     [
                         'role' => 'user',
-                        'content' => json_encode([
-                            'input_type' => $inputType,
-                            'content' => $content,
-                            'rule_analysis' => $ruleAnalysis,
-                        ], JSON_UNESCAPED_UNICODE),
+                        'content' => $this->payloadJson($inputType, $content, $ruleAnalysis),
                     ],
                 ],
             ]);
@@ -68,6 +68,57 @@ class AiFraudService
         }
 
         return $this->normalize($decoded, $response->json());
+    }
+
+    private function callGemini(string $inputType, string $content, array $ruleAnalysis): array
+    {
+        $url = sprintf(
+            '%s/models/%s:generateContent?key=%s',
+            config('ai.gemini.base_url'),
+            config('ai.gemini.model'),
+            config('ai.gemini.api_key')
+        );
+
+        $response = Http::timeout(config('ai.timeout'))
+            ->acceptJson()
+            ->post($url, [
+                'contents' => [
+                    [
+                        'role' => 'user',
+                        'parts' => [
+                            [
+                                'text' => $this->systemPrompt()."\n\n".$this->payloadJson($inputType, $content, $ruleAnalysis),
+                            ],
+                        ],
+                    ],
+                ],
+                'generationConfig' => [
+                    'response_mime_type' => 'application/json',
+                    'temperature' => 0.2,
+                ],
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('ai_request_failed');
+        }
+
+        $content = $response->json('candidates.0.content.parts.0.text');
+        $decoded = is_string($content) ? json_decode($content, true) : null;
+
+        if (! is_array($decoded)) {
+            throw new RuntimeException('ai_invalid_json');
+        }
+
+        return $this->normalize($decoded, $response->json());
+    }
+
+    private function payloadJson(string $inputType, string $content, array $ruleAnalysis): string
+    {
+        return json_encode([
+            'input_type' => $inputType,
+            'content' => $content,
+            'rule_analysis' => $ruleAnalysis,
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function systemPrompt(): string
@@ -88,11 +139,6 @@ Return this JSON shape:
 PROMPT;
     }
 
-    /**
-     * @param array<string, mixed> $decoded
-     * @param array<string, mixed> $rawResponse
-     * @return array<string, mixed>
-     */
     private function normalize(array $decoded, array $rawResponse): array
     {
         $score = (int) ($decoded['risk_score'] ?? 0);

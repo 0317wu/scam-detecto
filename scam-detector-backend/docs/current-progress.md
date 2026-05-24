@@ -91,3 +91,61 @@ OPENAI_API_KEY=你的 API key
 4. 若需要真 OCR，先安裝 Tesseract。
 5. 若需要真 AI，設定 OpenAI API key。
 6. 最後再做部署或課堂展示整理。
+## Gemini Free Tier 設定方式
+
+如果不想用 OpenAI 付費 API，可以改用 Gemini API 的 free tier 測試。
+
+1. 到 Google AI Studio 建立 API key：
+
+```text
+https://aistudio.google.com/app/apikey
+```
+
+2. 修改 `.env`：
+
+```env
+AI_ANALYSIS_ENABLED=true
+AI_PROVIDER=gemini
+AI_TIMEOUT=30
+GEMINI_API_KEY=你的_Gemini_API_Key
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+3. 清 Laravel config cache：
+
+```bash
+php artisan config:clear
+```
+
+4. 重新啟動 server：
+
+```bash
+php artisan serve
+```
+
+5. 測文字分析：
+
+```http
+POST /api/scam/analyze-text
+```
+
+Body：
+
+```json
+{
+  "content": "加入 LINE 投資群組，老師帶單，保證獲利翻倍，今天截止。"
+}
+```
+
+如果 Gemini 成功接上，回傳會看到：
+
+```json
+"ai_used": true
+```
+
+如果 Gemini API 失敗或額度不足，後端會 fallback 到規則式分析，回傳：
+
+```json
+"ai_used": false
+```

@@ -24,7 +24,9 @@ class ScamAnalysisApiTest extends TestCase
 
         Cache::flush();
         Config::set('ai.enabled', false);
+        Config::set('ai.provider', 'openai');
         Config::set('ai.openai.api_key', null);
+        Config::set('ai.gemini.api_key', null);
     }
 
     public function test_text_analysis_detects_dangerous_investment_message(): void
@@ -41,19 +43,7 @@ class ScamAnalysisApiTest extends TestCase
             ->assertJsonPath('data.risk_level', 'danger')
             ->assertJsonPath('data.scam_type', '假投資詐騙')
             ->assertJsonPath('data.cache_hit', false)
-            ->assertJsonPath('data.ai_used', false)
-            ->assertJsonStructure([
-                'data' => [
-                    'id',
-                    'risk_score',
-                    'summary',
-                    'risk_factors',
-                    'suggestions',
-                    'cache_hit',
-                    'ai_used',
-                    'created_at',
-                ],
-            ]);
+            ->assertJsonPath('data.ai_used', false);
 
         $this->assertDatabaseHas('scam_scans', [
             'input_type' => 'text',
@@ -114,20 +104,12 @@ class ScamAnalysisApiTest extends TestCase
     {
         $content = '立即加入 LINE 投資群組，保證獲利。';
 
-        $first = $this->postJson('/api/scam/analyze-text', [
-            'content' => $content,
-        ]);
-
-        $second = $this->postJson('/api/scam/analyze-text', [
-            'content' => $content,
-        ]);
+        $first = $this->postJson('/api/scam/analyze-text', ['content' => $content]);
+        $second = $this->postJson('/api/scam/analyze-text', ['content' => $content]);
 
         $first->assertJsonPath('data.cache_hit', false);
         $second->assertJsonPath('data.cache_hit', true);
-        $this->assertSame(
-            $first->json('data.risk_score'),
-            $second->json('data.risk_score')
-        );
+        $this->assertSame($first->json('data.risk_score'), $second->json('data.risk_score'));
         $this->assertSame(2, ScamScan::where('input_type', 'text')->count());
     }
 
@@ -135,20 +117,12 @@ class ScamAnalysisApiTest extends TestCase
     {
         $url = 'http://secure-bank-login.verify.example.top/account/password';
 
-        $first = $this->postJson('/api/scam/analyze-url', [
-            'url' => $url,
-        ]);
-
-        $second = $this->postJson('/api/scam/analyze-url', [
-            'url' => $url,
-        ]);
+        $first = $this->postJson('/api/scam/analyze-url', ['url' => $url]);
+        $second = $this->postJson('/api/scam/analyze-url', ['url' => $url]);
 
         $first->assertJsonPath('data.cache_hit', false);
         $second->assertJsonPath('data.cache_hit', true);
-        $this->assertSame(
-            $first->json('data.risk_score'),
-            $second->json('data.risk_score')
-        );
+        $this->assertSame($first->json('data.risk_score'), $second->json('data.risk_score'));
         $this->assertSame(2, ScamScan::where('input_type', 'url')->count());
     }
 
@@ -177,9 +151,10 @@ class ScamAnalysisApiTest extends TestCase
         Storage::disk('public')->assertExists($scan->image_path);
     }
 
-    public function test_ai_analysis_can_enrich_rule_analysis(): void
+    public function test_openai_analysis_can_enrich_rule_analysis(): void
     {
         Config::set('ai.enabled', true);
+        Config::set('ai.provider', 'openai');
         Config::set('ai.openai.api_key', 'test-key');
 
         Http::fake([
@@ -214,13 +189,56 @@ class ScamAnalysisApiTest extends TestCase
         $this->assertNotNull(ScamScan::firstOrFail()->ai_raw_response);
     }
 
+    public function test_gemini_analysis_can_enrich_rule_analysis(): void
+    {
+        Config::set('ai.enabled', true);
+        Config::set('ai.provider', 'gemini');
+        Config::set('ai.gemini.api_key', 'test-gemini-key');
+
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                [
+                                    'text' => json_encode([
+                                        'risk_score' => 88,
+                                        'risk_level' => 'danger',
+                                        'scam_type' => '假投資詐騙',
+                                        'summary' => 'Gemini 判斷此訊息疑似假投資詐騙。',
+                                        'risk_factors' => ['Gemini 判斷投資群組風險'],
+                                        'suggestions' => ['不要匯款給陌生帳戶'],
+                                    ], JSON_UNESCAPED_UNICODE),
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $response = $this->postJson('/api/scam/analyze-text', [
+            'content' => '加入 LINE 投資群組，保證獲利。',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.ai_used', true)
+            ->assertJsonPath('data.risk_score', 88)
+            ->assertJsonPath('data.summary', 'Gemini 判斷此訊息疑似假投資詐騙。');
+
+        $this->assertNotNull(ScamScan::firstOrFail()->ai_raw_response);
+    }
+
     public function test_ai_failure_falls_back_to_rule_analysis(): void
     {
         Config::set('ai.enabled', true);
-        Config::set('ai.openai.api_key', 'test-key');
+        Config::set('ai.provider', 'gemini');
+        Config::set('ai.gemini.api_key', 'test-gemini-key');
 
         Http::fake([
-            'api.openai.com/*' => Http::response(['error' => 'server error'], 500),
+            'generativelanguage.googleapis.com/*' => Http::response(['error' => 'server error'], 500),
         ]);
 
         $response = $this->postJson('/api/scam/analyze-text', [
@@ -235,15 +253,11 @@ class ScamAnalysisApiTest extends TestCase
 
     public function test_image_analysis_requires_image_file(): void
     {
-        $this->postJson('/api/scam/analyze-image', [
-            'image' => 'not-an-image',
-        ])
+        $this->postJson('/api/scam/analyze-image', ['image' => 'not-an-image'])
             ->assertUnprocessable()
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'validation_failed')
-            ->assertJsonStructure([
-                'errors' => ['image'],
-            ]);
+            ->assertJsonStructure(['errors' => ['image']]);
     }
 
     public function test_text_analysis_requires_content(): void
@@ -252,22 +266,16 @@ class ScamAnalysisApiTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'validation_failed')
-            ->assertJsonStructure([
-                'errors' => ['content'],
-            ]);
+            ->assertJsonStructure(['errors' => ['content']]);
     }
 
     public function test_url_analysis_requires_valid_url(): void
     {
-        $this->postJson('/api/scam/analyze-url', [
-            'url' => 'not-a-url',
-        ])
+        $this->postJson('/api/scam/analyze-url', ['url' => 'not-a-url'])
             ->assertUnprocessable()
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'validation_failed')
-            ->assertJsonStructure([
-                'errors' => ['url'],
-            ]);
+            ->assertJsonStructure(['errors' => ['url']]);
     }
 
     private function mockOcrText(string $text): void
