@@ -137,6 +137,7 @@ const runTicker = () => {
 };
 
 // 啟動掃描辨識
+// 啟動掃描辨識
 const handleStartScan = (payload) => {
   scanState.value = 'scanning';
   scanProgress.value = 0;
@@ -146,27 +147,44 @@ const handleStartScan = (payload) => {
   let apiFinished = false;
   let apiResponse = null;
 
-  // 1. 發送 API 請求
-  axios.post('/api/analyze', payload)
+  // 1. 根據分析類型發送真實 API 請求
+  let requestPromise;
+  if (payload.type === 'text') {
+    requestPromise = axios.post('/api/scam/analyze-text', { content: payload.content });
+  } else if (payload.type === 'url') {
+    requestPromise = axios.post('/api/scam/analyze-url', { url: payload.content });
+  } else if (payload.type === 'image') {
+    const formData = new FormData();
+    // 使用真實的圖片檔案物件，優先嘗試 imageFile，再嘗試 file，最後退回到 base64/字串（如有需要）
+    const imageObj = payload.imageFile || payload.file || payload.content;
+    formData.append('image', imageObj);
+    requestPromise = axios.post('/api/scam/analyze-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  } else {
+    requestPromise = Promise.reject(new Error('未知的分析類型'));
+  }
+
+  requestPromise
     .then((response) => {
-      apiResponse = response.data;
+      // 成功取得資料，對接後端真實回傳格式 response.data.data
+      apiResponse = response.data?.data || {};
       apiFinished = true;
     })
     .catch((error) => {
-      // 模擬通信失敗，防呆
+      console.error('分析 API 請求失敗，啟動防呆臨時引擎:', error);
+      // 模擬通信失敗防呆
       apiResponse = {
-        success: true,
-        type: payload.type,
-        ocr_text: '',
-        result: {
-          status: 'warning',
-          score: 50,
-          title: '通信鏈結異常警告',
-          summary: '目前無法與雲端 AI 核心同步，以下為本地防火牆規則引擎辨識結果。',
-          risk_factors: ['本地規則警告', '未知外部連結'],
-          details: '因為伺服器網路異常，我們啟動了本地臨時防範引擎。若此訊息要求轉帳或提供個人資料，請提高警覺。',
-          recommendations: ['請稍後在網路通暢時再次掃描。', '請勿在來源不明的表單輸入信用卡號。']
-        }
+        risk_level: 'warning',
+        risk_score: 50,
+        scam_type: '通信鏈結異常警告',
+        summary: '目前無法與雲端 AI 核心同步，以下為本地防火牆規則引擎辨識結果。',
+        risk_factors: ['本地規則警告', '未知外部連結'],
+        details: '因為伺服器網路異常，我們啟動了本地臨時防範引擎。若此訊息要求轉帳或提供個人資料，請提高警覺。',
+        suggestions: ['請稍後在網路通暢時再次掃描。', '請勿在來源不明的表單輸入信用卡號。'],
+        ocr_text: ''
       };
       apiFinished = true;
     });
@@ -184,15 +202,25 @@ const handleStartScan = (payload) => {
     if (scanProgress.value >= 100 && apiFinished) {
       clearInterval(progressTimer);
       
-      // 更新狀態
-      ocrText.value = apiResponse.ocr_text;
-      analysisResult.value = apiResponse.result;
-      aiCoreStatus.value = apiResponse.result.status;
+      // 3. 適配返回欄位與 Vue state 綁定（包含完善防呆）
+      ocrText.value = apiResponse.ocr_text || '';
+      aiCoreStatus.value = apiResponse.risk_level || 'safe';
+      
+      analysisResult.value = {
+        status: apiResponse.risk_level || 'safe',
+        score: apiResponse.risk_score !== undefined ? apiResponse.risk_score : 0,
+        title: apiResponse.scam_type || '無異常',
+        summary: apiResponse.summary || '未發現明顯詐騙特徵',
+        risk_factors: apiResponse.risk_factors || [],
+        details: apiResponse.details || '經過初步分析，該內容並無明確的詐騙危險指標。請繼續保持警覺。',
+        recommendations: apiResponse.suggestions || []
+      };
+      
       scanState.value = 'completed';
 
       // 今日計數器加 1
       todayProcessed.value += 1;
-      if (apiResponse.result.status === 'danger') {
+      if (apiResponse.risk_level === 'danger') {
         todayBlocked.value += 1;
       }
     }
@@ -207,6 +235,36 @@ const resetScanner = () => {
 };
 
 onMounted(() => {
+  // 4. 對接跑馬燈 Ticker 案例 API
+  axios.get('/api/scam/cases')
+    .then((response) => {
+      const casesData = response.data?.data?.cases || [];
+      if (casesData.length > 0) {
+        activeAlerts.value = casesData.map(c => {
+          let timeStr = '剛剛';
+          if (c.created_at) {
+            // 從 '2026-05-24 15:32:00' 格式提取出 '15:32'
+            const parts = c.created_at.split(' ');
+            if (parts.length >= 2) {
+              const hm = parts[1].split(':');
+              if (hm.length >= 2) {
+                timeStr = `${hm[0]}:${hm[1]}`;
+              }
+            }
+          }
+          return {
+            severity: 'danger', // 既為已通報之真實詐騙案例，設定為高風險
+            badge: c.scam_type || '詐騙警報',
+            time: timeStr,
+            content: c.description || c.title || ''
+          };
+        });
+      }
+    })
+    .catch((err) => {
+      console.error('無法獲取即時詐騙案例數據:', err);
+    });
+
   runTicker();
 });
 
