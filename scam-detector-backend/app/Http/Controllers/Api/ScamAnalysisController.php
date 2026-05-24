@@ -12,8 +12,7 @@ class ScamAnalysisController extends Controller
 {
     public function __construct(
         private readonly FraudService $fraudService,
-    ) {
-    }
+    ) {}
 
     public function analyzeText(Request $request): JsonResponse
     {

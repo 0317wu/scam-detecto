@@ -20,8 +20,7 @@ class FraudService
         private readonly ScoreHelper $scoreHelper,
         private readonly OcrService $ocrService,
         private readonly AiFraudService $aiFraudService,
-    ) {
-    }
+    ) {}
 
     public function analyzeText(string $content, ?User $user = null): array
     {

@@ -282,9 +282,7 @@ class ScamAnalysisApiTest extends TestCase
     {
         $this->app->instance(OcrService::class, new class($text) extends OcrService
         {
-            public function __construct(private readonly string $text)
-            {
-            }
+            public function __construct(private readonly string $text) {}
 
             public function extractText(string $imagePath): string
             {
