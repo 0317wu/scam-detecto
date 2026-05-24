@@ -242,6 +242,8 @@ const initializeScan = () => {
       return;
     }
     payload.content = imagePreview.value; // 傳送 Base64
+    payload.imageFile = imageFile.value; // 傳送真實檔案物件
+    payload.file = imageFile.value; // 備用欄位
   }
 
   emit('start-scan', payload);
