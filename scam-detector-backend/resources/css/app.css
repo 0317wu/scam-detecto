@@ -1,11 +1,244 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+/* AI 詐騙訊息辨識系統 - 未來科技風全域 CSS */
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+:root {
+  /* 科幻極暗底色 */
+  --bg-primary: #03000a;
+  --bg-secondary: #08071e;
+  --bg-card: rgba(13, 11, 35, 0.65); /* 半透明毛玻璃卡片背景 */
+  --bg-card-hover: rgba(22, 19, 56, 0.8);
+
+  /* 霓虹狀態色彩 (HSL 方便調整亮度與透明度) */
+  --color-safe: #00f2fe;        /* 霓虹青藍 (安全) */
+  --color-safe-rgb: 0, 242, 254;
+  --color-warning: #f1c40f;     /* 霓虹琥珀黃 (疑似詐騙) */
+  --color-warning-rgb: 241, 196, 15;
+  --color-danger: #ff0844;      /* 霓虹洋紅/警示紅 (高危詐騙) */
+  --color-danger-rgb: 255, 8, 68;
+  --color-neon-blue: #0984e3;   /* 裝飾藍 */
+  --color-neon-purple: #ae3ec9; /* 裝飾紫 */
+
+  /* 文字色彩 */
+  --color-text-main: #f8fafc;   /* 亮灰白 */
+  --color-text-muted: #94a3b8;  /* 次級暗灰 */
+  --color-text-dark: #0f172a;
+
+  /* 霓虹發光投影 (Neon Glow Effects) */
+  --glow-safe: 0 0 15px rgba(0, 242, 254, 0.35), 0 0 5px rgba(0, 242, 254, 0.2);
+  --glow-warning: 0 0 15px rgba(241, 196, 15, 0.35), 0 0 5px rgba(241, 196, 15, 0.2);
+  --glow-danger: 0 0 15px rgba(255, 8, 68, 0.35), 0 0 5px rgba(255, 8, 68, 0.2);
+  --glow-neon-blue: 0 0 15px rgba(9, 132, 227, 0.4);
+
+  /* 幾何邊框與毛玻璃模糊 */
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --glass-border-focus: 1px solid rgba(0, 242, 254, 0.5);
+  --glass-blur: blur(16px);
+  --border-radius: 12px;
+}
+
+/* 基礎重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--color-text-main);
+  font-family: 'Outfit', 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* 科幻動態背景網格 */
+.cyber-grid {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: 
+    linear-gradient(rgba(0, 242, 254, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 254, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center;
+  z-index: -2;
+  pointer-events: none;
+  animation: gridMove 30s linear infinite;
+}
+
+@keyframes gridMove {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 50px 50px;
+  }
+}
+
+/* 霓虹星塵粒子背景裝飾 */
+.cyber-bg-glow {
+  position: fixed;
+  top: -10%;
+  right: -10%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(174, 62, 201, 0.08) 0%, transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.cyber-bg-glow-2 {
+  position: fixed;
+  bottom: -10%;
+  left: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.08) 0%, transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 客製化科幻風滾動條 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(3, 0, 10, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 242, 254, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.3s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 242, 254, 0.5);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+}
+
+/* 科幻通用 Class 樣式 */
+.cyber-card {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.cyber-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.5), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.cyber-card:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(0, 242, 254, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transform: translateY(-2px);
+}
+
+.cyber-card:hover::before {
+  transform: translateX(100%);
+}
+
+/* 霓虹發光文字 */
+.text-glow-safe {
+  color: var(--color-safe);
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
+}
+
+.text-glow-warning {
+  color: var(--color-warning);
+  text-shadow: 0 0 8px rgba(241, 196, 15, 0.5);
+}
+
+.text-glow-danger {
+  color: var(--color-danger);
+  text-shadow: 0 0 8px rgba(255, 8, 68, 0.5);
+}
+
+.text-mono {
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* 科幻流光按鈕 */
+.cyber-btn {
+  background: transparent;
+  border: 1px solid var(--color-safe);
+  color: var(--color-safe);
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--glow-safe);
+}
+
+.cyber-btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: -100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: all 0.4s ease;
+}
+
+.cyber-btn:hover {
+  background: rgba(0, 242, 254, 0.1);
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.cyber-btn:hover::after {
+  left: 100%;
+}
+
+.cyber-btn:active {
+  transform: scale(0.97);
+}
+
+.cyber-btn:disabled {
+  border-color: var(--color-text-muted);
+  color: var(--color-text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 全域無障礙焦點框 - A11y Sci-Fi Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--color-safe) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.6) !important;
 }
