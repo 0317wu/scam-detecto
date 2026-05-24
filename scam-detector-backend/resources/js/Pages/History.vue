@@ -106,103 +106,207 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import axios from 'axios';
 import CyberLayout from '@/Layouts/CyberLayout.vue';
 import StatChart from '@/Components/StatChart.vue';
 
 const searchQuery = ref('');
+const logsData = ref([]);
 
-// 歷史日誌 Mock 數據
-const logsData = ref([
-  { id: 1, date: '2026-05-23 15:32', type: 'TEXT', snippet: '【國稅局重要通知】您有一筆退稅金 10,000 元尚未申領，請點擊連結辦理...', score: 92, status: 'danger', type_label: '假冒政府退稅' },
-  { id: 2, date: '2026-05-23 12:15', type: 'URL', snippet: '聯絡寄件異常！請進入下方貨運連結重新確認地址：http://post-tw-cargo.xyz', score: 58, status: 'warning', type_label: '疑似釣魚連結' },
-  { id: 3, date: '2026-05-22 18:40', type: 'IMAGE', snippet: '【飆股推薦對話截圖】跟著李老師穩賺不賠，保證高報酬無風險，加LINE...', score: 96, status: 'danger', type_label: '假投資社群' },
-  { id: 4, date: '2026-05-22 10:10', type: 'TEXT', snippet: '您好，這是明天開會的簡報網址：https://www.google.com，請查閱。', score: 8, status: 'safe', type_label: '安全通訊' },
-  { id: 5, date: '2026-05-21 16:30', type: 'TEXT', snippet: '【自來水公司】提醒您，您的自來水費已逾期。請點擊連結補繳...', score: 88, status: 'danger', type_label: '假冒公用事業' },
-  { id: 6, date: '2026-05-21 11:05', type: 'URL', snippet: '快來領取免費 LINE 貼圖！限時點擊：http://line-free-stickers.top', score: 65, status: 'warning', type_label: '可疑推廣連結' },
-  { id: 7, date: '2026-05-20 09:20', type: 'IMAGE', snippet: '【網購客服截圖】您好，您有一筆訂單重複扣款12次，需要前往ATM解除...', score: 94, status: 'danger', type_label: '假冒客服解除扣款' },
-  { id: 8, date: '2026-05-20 08:15', type: 'TEXT', snippet: '恭喜您獲得全家便利商店 1000 元禮券！請點擊連結領取...', score: 52, status: 'warning', type_label: '中獎詐騙連結' }
-]);
-
-// 篩選與排序（從近到遠，即時間降序）
-const filteredLogs = computed(() => {
-  let list = [...logsData.value];
-  
-  // 依時間從近到遠排序（降序）
-  list.sort((a, b) => b.date.localeCompare(a.date));
-  
-  if (!searchQuery.value.trim()) return list;
-  const q = searchQuery.value.toLowerCase();
-  return list.filter(log => 
-    log.snippet.toLowerCase().includes(q) || 
-    log.type_label.toLowerCase().includes(q) ||
-    log.type.toLowerCase().includes(q)
-  );
-});
+// 為了相容現有 Template 的變數，將 filteredLogs 與 paginatedLogs 對接至 logsData
+const filteredLogs = computed(() => logsData.value);
+const paginatedLogs = computed(() => logsData.value);
 
 // 分頁狀態
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
+const totalPages = ref(1);
+const totalItems = ref(0);
 
-const totalPages = computed(() => {
-  const pages = Math.ceil(filteredLogs.value.length / itemsPerPage.value);
-  return pages > 0 ? pages : 1;
-});
+const isLoadingLogs = ref(false);
+const isLoadingStats = ref(false);
 
-const paginatedLogs = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value;
-  return filteredLogs.value.slice(start, start + itemsPerPage.value);
-});
+// 日期格式化工具，格式化為 YYYY-MM-DD HH:mm
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+      // 容錯機制：若解析失敗則直接傳回前 16 個字元（去 T）
+      return dateStr.substring(0, 16).replace('T', ' ');
+    }
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  } catch (e) {
+    return dateStr || '';
+  }
+};
 
-// 當搜尋條件改變時重設頁碼
+// 載入歷史日誌
+const loadHistoryLogs = async () => {
+  isLoadingLogs.value = true;
+  try {
+    const response = await axios.get('/api/scam/history', {
+      params: {
+        search: searchQuery.value || '',
+        page: currentPage.value,
+        per_page: itemsPerPage.value
+      }
+    });
+
+    if (response.data && response.data.success && response.data.data) {
+      const data = response.data.data;
+      const items = data.items || [];
+      
+      logsData.value = items.map(item => ({
+        id: item.id,
+        date: formatDate(item.created_at),
+        type: (item.input_type || '').toUpperCase(),
+        snippet: item.summary || '',
+        score: typeof item.risk_score === 'number' ? item.risk_score : 0,
+        status: ['safe', 'warning', 'danger'].includes(item.risk_level) ? item.risk_level : 'safe',
+        type_label: item.scam_type || ''
+      }));
+
+      if (data.pagination) {
+        totalPages.value = typeof data.pagination.last_page === 'number' ? data.pagination.last_page : 1;
+        totalItems.value = typeof data.pagination.total === 'number' ? data.pagination.total : 0;
+      }
+    } else {
+      logsData.value = [];
+      totalPages.value = 1;
+      totalItems.value = 0;
+    }
+  } catch (error) {
+    console.error('載入歷史日誌失敗:', error);
+    logsData.value = [];
+    totalPages.value = 1;
+    totalItems.value = 0;
+  } finally {
+    isLoadingLogs.value = false;
+  }
+};
+
+// 當搜尋條件改變時重設頁碼，並重新載入日誌
 watch(searchQuery, () => {
-  currentPage.value = 1;
+  if (currentPage.value !== 1) {
+    currentPage.value = 1; // 會觸發 watch(currentPage)
+  } else {
+    loadHistoryLogs();
+  }
+});
+
+// 當頁碼改變時重新載入日誌
+watch(currentPage, () => {
+  loadHistoryLogs();
 });
 
 // 圖表數據 1：圓餅分佈
-const doughnutData = computed(() => {
-  return {
-    labels: ['假投資社群', '釣魚短連結', '假冒官方機構', '安全訊息'],
-    datasets: [{
-      data: [40, 25, 25, 10], // 比例
-      backgroundColor: [
-        '#ff0844', // danger (紅)
-        '#f1c40f', // warning (黃)
-        '#ae3ec9', // purple (紫)
-        '#00f2fe'  // safe (青)
-      ],
-      borderWidth: 1,
-      borderColor: '#08071e'
-    }]
-  };
+const doughnutData = ref({
+  labels: [],
+  datasets: [{
+    data: [],
+    backgroundColor: [
+      '#ff0844', // danger (紅)
+      '#f1c40f', // warning (黃)
+      '#ae3ec9', // purple (紫)
+      '#00f2fe', // safe (青)
+      '#ff9f43', // 額外的顏色做為防呆
+      '#0abde3',
+      '#10ac84',
+      '#5f27cd',
+      '#ff6b6b'
+    ],
+    borderWidth: 1,
+    borderColor: '#08071e'
+  }]
 });
 
 // 圖表數據 2：折線趨勢
-const lineData = computed(() => {
-  return {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [{
-      label: 'AI 攔截詐騙次數',
-      data: [12, 19, 15, 28, 22, 35, 42],
-      borderColor: '#00f2fe',
-      backgroundColor: 'rgba(0, 242, 254, 0.05)',
-      borderWidth: 2,
-      pointBackgroundColor: '#00f2fe',
-      pointBorderColor: '#ffffff',
-      pointHoverRadius: 6,
-      fill: true,
-      tension: 0.3
-    }]
-  };
+const lineData = ref({
+  labels: [],
+  datasets: [{
+    label: 'AI 攔截詐騙次數',
+    data: [],
+    borderColor: '#00f2fe',
+    backgroundColor: 'rgba(0, 242, 254, 0.05)',
+    borderWidth: 2,
+    pointBackgroundColor: '#00f2fe',
+    pointBorderColor: '#ffffff',
+    pointHoverRadius: 6,
+    fill: true,
+    tension: 0.3
+  }]
 });
 
 const lineOptions = {
   plugins: {
     legend: {
-      display: false // 折線圖不需要單獨標籤圖示
+      display: false
     }
   }
 };
+
+// 格式化日期為 MM/DD
+const formatMD = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length >= 3) {
+    return `${parts[1]}/${parts[2]}`;
+  }
+  return dateStr;
+};
+
+// 載入統計數據
+const loadStatsData = async () => {
+  isLoadingStats.value = true;
+  try {
+    const response = await axios.get('/api/scam/stats');
+    if (response.data && response.data.success && response.data.data) {
+      const data = response.data.data;
+      
+      // 更新折線圖
+      if (data.weekly_trend && Array.isArray(data.weekly_trend)) {
+        const sortedTrend = [...data.weekly_trend].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        lineData.value = {
+          ...lineData.value,
+          labels: sortedTrend.map(item => formatMD(item.date)),
+          datasets: [{
+            ...lineData.value.datasets[0],
+            data: sortedTrend.map(item => typeof item.count === 'number' ? item.count : 0)
+          }]
+        };
+      }
+
+      // 更新圓餅圖
+      if (data.scam_type_distribution && Array.isArray(data.scam_type_distribution)) {
+        const dist = data.scam_type_distribution;
+        doughnutData.value = {
+          ...doughnutData.value,
+          labels: dist.map(item => item.scam_type || '未分類'),
+          datasets: [{
+            ...doughnutData.value.datasets[0],
+            data: dist.map(item => typeof item.count === 'number' ? item.count : 0)
+          }]
+        };
+      }
+    }
+  } catch (error) {
+    console.error('載入統計數據失敗:', error);
+  } finally {
+    isLoadingStats.value = false;
+  }
+};
+
+onMounted(() => {
+  loadHistoryLogs();
+  loadStatsData();
+});
 </script>
 
 <style scoped>
