@@ -306,7 +306,7 @@ class ScamAnalysisApiTest extends TestCase
         config(['services.openai.api_key' => null]);
         $response = $this->postJson('/api/scam/analyze-text', ['content' => 'test']);
         $response->assertStatus(422)
-                 ->assertJsonFragment(['message' => 'api_key_missing']);
+            ->assertJsonFragment(['message' => 'api_key_missing']);
     }
 
     private function mockOcrText(string $text): void

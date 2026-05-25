@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Helpers\RuleHelper;
 use App\Models\ScamCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -99,11 +100,11 @@ class ScamDatabaseIntegrationTest extends TestCase
             'keywords' => ['super_secret_scam_keyword'],
         ]);
 
-        $helper = new \App\Helpers\RuleHelper();
+        $helper = new RuleHelper;
         $matches = $helper->detectTextRules('This is a super_secret_scam_keyword test.');
 
         $this->assertNotEmpty($matches);
-        
+
         $found = false;
         foreach ($matches as $match) {
             if ($match['weight'] === 30 && isset($match['factor']) && $match['factor'] === 'Dynamic Rule Test') {

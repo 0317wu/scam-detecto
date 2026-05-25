@@ -91,7 +91,7 @@ class SystemSmokeTest extends TestCase
     public function test_api_config_endpoint_is_accessible()
     {
         $response = $this->getJson('/api/scam/config');
-        
+
         $response->assertStatus(200);
         $response->assertJsonStructure(['has_ai_key']);
     }

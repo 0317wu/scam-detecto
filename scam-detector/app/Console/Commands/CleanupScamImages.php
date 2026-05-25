@@ -36,8 +36,8 @@ class CleanupScamImages extends Command
         foreach ($files as $file) {
             // 確認該圖片是否被任何一筆 ScamScan 記錄引用
             $isReferenced = ScamScan::where('image_path', $file)->exists();
-            
-            if (!$isReferenced) {
+
+            if (! $isReferenced) {
                 Storage::disk('public')->delete($file);
                 $this->line("Deleted unreferenced image: {$file}");
                 $deletedCount++;

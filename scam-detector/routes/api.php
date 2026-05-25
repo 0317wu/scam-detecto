@@ -1,12 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ScamAdminScanController;
 use App\Http\Controllers\Api\ScamAnalysisController;
 use App\Http\Controllers\Api\ScamCaseController;
 use App\Http\Controllers\Api\ScamDashboardController;
 use App\Http\Controllers\Api\ScamHistoryController;
 use App\Http\Controllers\Api\SystemConfigController;
-use App\Http\Controllers\Api\ScamAdminScanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

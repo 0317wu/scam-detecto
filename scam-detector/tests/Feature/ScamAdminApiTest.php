@@ -24,31 +24,31 @@ class ScamAdminApiTest extends TestCase
 
         // 測試普通用戶無法訪問
         $response = $this->actingAs($user)
-                         ->getJson('/api/scam/scans');
-        
+            ->getJson('/api/scam/scans');
+
         $response->assertStatus(403);
 
         // 測試管理員可以訪問
         $response = $this->actingAs($admin)
-                         ->getJson('/api/scam/scans');
+            ->getJson('/api/scam/scans');
 
         $response->assertStatus(200);
-        
+
         // 驗證是否分頁返回，且第一頁數量為 15
         $response->assertJsonStructure([
             'data' => [
                 'items' => [
-                    '*' => ['id', 'user_id', 'user_email', 'input_type', 'content', 'risk_score', 'risk_level', 'scam_type', 'created_at']
+                    '*' => ['id', 'user_id', 'user_email', 'input_type', 'content', 'risk_score', 'risk_level', 'scam_type', 'created_at'],
                 ],
                 'pagination' => [
                     'current_page',
                     'last_page',
                     'per_page',
-                    'total'
-                ]
-            ]
+                    'total',
+                ],
+            ],
         ]);
-        
+
         $response->assertJsonCount(15, 'data.items');
     }
 }

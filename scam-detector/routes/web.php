@@ -29,6 +29,7 @@ Route::get('/cases-manager', function () {
     if (! auth()->user()?->is_admin) {
         abort(403, 'Unauthorized.');
     }
+
     return Inertia::render('CasesManager');
 })->middleware(['auth'])->name('cases-manager');
 
@@ -37,6 +38,7 @@ Route::get('/scans-manager', function () {
     if (! auth()->user()?->is_admin) {
         abort(403, 'Unauthorized.');
     }
+
     return Inertia::render('ScansManager');
 })->middleware(['auth'])->name('scans-manager');
 

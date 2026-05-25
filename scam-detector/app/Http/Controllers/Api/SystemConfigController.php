@@ -9,7 +9,7 @@ class SystemConfigController extends Controller
     public function index()
     {
         return response()->json([
-            'has_ai_key' => !empty(config('services.openai.api_key')),
+            'has_ai_key' => ! empty(config('services.openai.api_key')),
         ]);
     }
 }

@@ -63,6 +63,7 @@ class ScamDashboardController extends Controller
         } elseif ($visitorId) {
             return $query->whereNull('user_id')->where('visitor_id', $visitorId);
         }
+
         return $query->whereRaw('1 = 0');
     }
 
