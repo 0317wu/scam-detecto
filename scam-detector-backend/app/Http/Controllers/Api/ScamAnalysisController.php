@@ -16,6 +16,10 @@ class ScamAnalysisController extends Controller
 
     public function analyzeText(Request $request): JsonResponse
     {
+        if ($error = $this->checkApiKey()) {
+            return $error;
+        }
+
         $validated = $request->validate([
             'content' => ['required', 'string', 'min:2', 'max:5000'],
             'visitor_id' => ['nullable', 'string', 'max:36'],
@@ -32,6 +36,10 @@ class ScamAnalysisController extends Controller
 
     public function analyzeUrl(Request $request): JsonResponse
     {
+        if ($error = $this->checkApiKey()) {
+            return $error;
+        }
+
         $validated = $request->validate([
             'url' => ['required', 'url', 'max:2048'],
             'visitor_id' => ['nullable', 'string', 'max:36'],
@@ -48,6 +56,10 @@ class ScamAnalysisController extends Controller
 
     public function analyzeImage(Request $request): JsonResponse
     {
+        if ($error = $this->checkApiKey()) {
+            return $error;
+        }
+
         $validated = $request->validate([
             'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'visitor_id' => ['nullable', 'string', 'max:36'],
@@ -60,6 +72,15 @@ class ScamAnalysisController extends Controller
             $this->formatScan($result['scan'], $result['cache_hit']),
             'analysis_completed'
         );
+    }
+
+    private function checkApiKey(): ?JsonResponse
+    {
+        if (empty(config('services.openai.api_key'))) {
+            return response()->error('api_key_missing', 'API Key not configured', 422);
+        }
+
+        return null;
     }
 
     private function formatScan(ScamScan $scan, bool $cacheHit): array

@@ -27,6 +27,7 @@ class ScamAnalysisApiTest extends TestCase
         Config::set('ai.provider', 'openai');
         Config::set('ai.openai.api_key', null);
         Config::set('ai.gemini.api_key', null);
+        putenv('OPENAI_API_KEY=test-key');
     }
 
     public function test_text_analysis_detects_dangerous_investment_message(): void
@@ -298,6 +299,14 @@ class ScamAnalysisApiTest extends TestCase
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'validation_failed')
             ->assertJsonStructure(['errors' => ['url']]);
+    }
+
+    public function test_scan_fails_without_api_key()
+    {
+        config(['services.openai.api_key' => null]);
+        $response = $this->postJson('/api/scam/analyze-text', ['content' => 'test']);
+        $response->assertStatus(422)
+                 ->assertJsonFragment(['message' => 'api_key_missing']);
     }
 
     private function mockOcrText(string $text): void

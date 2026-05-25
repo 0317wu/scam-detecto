@@ -84,9 +84,9 @@ php artisan migrate --seed
 
 ### 4. 啟動開發服務
 為確保服務在 Windows 環境下不中斷且 Log 輸出清晰，建議分開兩個獨立終端機（CMD）執行：
-*   **終端機 A：啟動 Laravel 後端伺服器 (使用 8080 連接埠)**
+*   **終端機 A：啟動 Laravel 後端伺服器 (使用 8000 連接埠)**
     ```bash
-    php artisan serve --port=8080
+    php -S 127.0.0.1:8000 -t public public/index.php
     ```
 *   **終端機 B：啟動 Vite 前端熱重載**
     ```bash
@@ -95,7 +95,7 @@ php artisan migrate --seed
 
 ### 5. 瀏覽器存取
 造訪主入口網址即可體驗完整系統：
-👉 **[http://127.0.0.1:8080](http://127.0.0.1:8080)**
+👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 
 ---
 

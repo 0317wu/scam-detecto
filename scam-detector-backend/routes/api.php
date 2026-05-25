@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ScamAnalysisController;
 use App\Http\Controllers\Api\ScamCaseController;
 use App\Http\Controllers\Api\ScamDashboardController;
 use App\Http\Controllers\Api\ScamHistoryController;
+use App\Http\Controllers\Api\SystemConfigController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,8 @@ Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth:sanctum');
 
 Route::prefix('scam')->group(function () {
+    Route::get('/config', [SystemConfigController::class, 'index']);
+
     Route::middleware('throttle:60,1')->group(function () {
         Route::post('/analyze-text', [ScamAnalysisController::class, 'analyzeText']);
         Route::post('/analyze-url', [ScamAnalysisController::class, 'analyzeUrl']);
