@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ScamCaseController;
 use App\Http\Controllers\Api\ScamDashboardController;
 use App\Http\Controllers\Api\ScamHistoryController;
 use App\Http\Controllers\Api\SystemConfigController;
+use App\Http\Controllers\Api\ScamAdminScanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +40,7 @@ Route::prefix('scam')->group(function () {
 
     // 管理員案例庫維護 API（需登入且具備管理員權限）
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        Route::get('/scans', [ScamAdminScanController::class, 'index']);
         Route::post('/cases', [ScamCaseController::class, 'store']);
         Route::put('/cases/{case}', [ScamCaseController::class, 'update']);
         Route::delete('/cases/{case}', [ScamCaseController::class, 'destroy']);
