@@ -101,6 +101,27 @@ class ScamAnalysisApiTest extends TestCase
         ]);
     }
 
+    public function test_bearer_token_analysis_is_attached_to_user(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        $response = $this
+            ->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/scam/analyze-text', [
+                'content' => '限時投資機會，保證獲利，請加入 LINE 群組並依照老師指示匯款。',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.user_id', $user->id);
+
+        $this->assertDatabaseHas('scam_scans', [
+            'user_id' => $user->id,
+            'input_type' => 'text',
+        ]);
+    }
+
     public function test_repeated_text_analysis_uses_cache(): void
     {
         $content = '立即加入 LINE 投資群組，保證獲利。';

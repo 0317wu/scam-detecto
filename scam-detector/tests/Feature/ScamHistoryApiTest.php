@@ -79,6 +79,26 @@ class ScamHistoryApiTest extends TestCase
         );
     }
 
+    public function test_bearer_token_user_can_list_own_history(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        $this->createScan($user, [
+            'content' => '限時投資機會，保證獲利，加入 LINE。',
+            'risk_level' => 'danger',
+        ]);
+
+        $response = $this
+            ->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/scam/history?per_page=5');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.items.0.user_id', $user->id);
+    }
+
     public function test_user_can_search_history(): void
     {
         $user = User::factory()->create();

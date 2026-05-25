@@ -20,7 +20,7 @@ Route::get('/user', function (Request $request) {
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth:sanctum');
 
-Route::prefix('scam')->group(function () {
+Route::prefix('scam')->middleware('optional.sanctum')->group(function () {
     Route::get('/config', [SystemConfigController::class, 'index']);
 
     Route::middleware('throttle:60,1')->group(function () {

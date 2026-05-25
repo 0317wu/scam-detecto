@@ -65,7 +65,7 @@ npm.cmd run build
 6. 已完成完整測試：
 
 ```text
-46 passed (455 assertions)
+48 passed (461 assertions)
 ```
 
 7. 已完成實際 HTTP API 驗收：
@@ -99,6 +99,24 @@ GET /scans-manager -> 302 redirect to login
 GET /api/scam/stats -> stats_retrieved
 ```
 
+11. 已完成登入 token 串接流程測試：
+
+```text
+POST /api/register
+GET  /api/user
+POST /api/scam/analyze-url
+GET  /api/scam/history
+```
+
+測試結果：
+
+```text
+註冊成功
+Bearer token 可用
+分析紀錄正確綁定 user_id
+history_total = 1
+```
+
 ## 本次後端修正
 
 本次整合驗收發現 `ScamAnalysisController` 原本只檢查 OpenAI API key。
@@ -123,6 +141,43 @@ AI_ANALYSIS_ENABLED=true + AI_PROVIDER=gemini
 ```
 
 並新增測試確認 Gemini key 可以通過分析 API。
+
+## 本次新增修正：可選 Sanctum 驗證
+
+整合測試發現一個登入後歷史紀錄問題：
+
+```text
+前端登入後使用 Bearer token 呼叫分析 API，分析成功，但 history 查不到該紀錄。
+```
+
+原因是：
+
+```text
+/api/scam/analyze-*、/api/scam/history、/api/scam/stats 同時支援訪客與登入者，
+所以路由沒有掛 auth:sanctum。
+沒有 auth:sanctum 時，真實 Bearer token 不會自動解析成 request user。
+```
+
+目前已新增：
+
+```text
+app/Http/Middleware/OptionalSanctumAuth.php
+```
+
+效果：
+
+```text
+有 Bearer token -> 自動辨識登入使用者
+沒有 Bearer token -> 保持訪客 visitor_id 模式
+```
+
+已確認：
+
+```text
+登入者分析紀錄會寫入 user_id
+登入者 history 可查回自己的紀錄
+訪客仍可用 visitor_id 查自己的紀錄
+```
 
 ## 目前注意事項
 
