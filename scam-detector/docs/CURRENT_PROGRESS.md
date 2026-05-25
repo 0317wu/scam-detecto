@@ -203,7 +203,7 @@ OCR_LANGUAGE=chi_tra+eng
 
 ```bash
 cd scam-detector
-php -S 127.0.0.1:8000 -t public public/index.php
+php artisan serve
 npm.cmd run dev
 ```
 

@@ -86,7 +86,7 @@ php artisan migrate --seed
 為確保服務在 Windows 環境下不中斷且 Log 輸出清晰，建議分開兩個獨立終端機（CMD）執行：
 *   **終端機 A：啟動 Laravel 後端伺服器 (使用 8000 連接埠)**
     ```bash
-    php -S 127.0.0.1:8000 -t public public/index.php
+    php artisan serve
     ```
 *   **終端機 B：啟動 Vite 前端熱重載**
     ```bash
