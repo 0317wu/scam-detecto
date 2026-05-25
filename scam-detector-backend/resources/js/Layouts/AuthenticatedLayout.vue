@@ -39,6 +39,20 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     Dashboard
                                 </NavLink>
+                                <NavLink
+                                    v-if="$page.props.auth.user.is_admin"
+                                    :href="route('cases-manager')"
+                                    :active="route().current('cases-manager')"
+                                >
+                                    Cases
+                                </NavLink>
+                                <NavLink
+                                    v-if="$page.props.auth.user.is_admin"
+                                    :href="route('scans-manager')"
+                                    :active="route().current('scans-manager')"
+                                >
+                                    Scans
+                                </NavLink>
                             </div>
                         </div>
 
@@ -145,6 +159,20 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('dashboard')"
                         >
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="$page.props.auth.user.is_admin"
+                            :href="route('cases-manager')"
+                            :active="route().current('cases-manager')"
+                        >
+                            Cases
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="$page.props.auth.user.is_admin"
+                            :href="route('scans-manager')"
+                            :active="route().current('scans-manager')"
+                        >
+                            Scans
                         </ResponsiveNavLink>
                     </div>
 
