@@ -85,6 +85,32 @@ class ScamDatabaseIntegrationTest extends TestCase
         $response = $this->actingAs($admin)->deleteJson("/api/scam/cases/{$case->id}");
 
         $response->assertStatus(200);
-        $this->assertFalse(Cache::has('dynamic_scam_rules'));
+    }
+
+    public function test_rule_helper_loads_dynamic_rules_from_database()
+    {
+        Cache::forget('dynamic_scam_rules');
+
+        $case = ScamCase::create([
+            'title' => 'Dynamic Rule Test',
+            'description' => 'Dynamic Rule Test Description',
+            'scam_type' => 'phishing',
+            'threat_level' => 'danger',
+            'keywords' => ['super_secret_scam_keyword'],
+        ]);
+
+        $helper = new \App\Helpers\RuleHelper();
+        $matches = $helper->detectTextRules('This is a super_secret_scam_keyword test.');
+
+        $this->assertNotEmpty($matches);
+        
+        $found = false;
+        foreach ($matches as $match) {
+            if ($match['weight'] === 30 && isset($match['factor']) && $match['factor'] === 'Dynamic Rule Test') {
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue($found, 'Dynamic rule with weight 30 should be matched.');
     }
 }

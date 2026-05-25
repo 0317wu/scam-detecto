@@ -2,6 +2,9 @@
 
 namespace App\Helpers;
 
+use App\Models\ScamCase;
+use Illuminate\Support\Facades\Cache;
+
 class RuleHelper
 {
     public function detectTextRules(string $content): array
@@ -15,6 +18,39 @@ class RuleHelper
             ['factor' => '疑似假冒政府、銀行或物流單位', 'weight' => 22, 'patterns' => ['政府', '銀行', '客服', '物流', '包裹', '退稅', '補助']],
             ['factor' => '含有可疑連結', 'weight' => 20, 'patterns' => ['http://', 'https://', 'www.', '.top', '.xyz', '.vip']],
         ];
+
+        $dynamicRules = Cache::remember('dynamic_scam_rules', 86400, function () {
+            return ScamCase::whereIn('threat_level', ['danger', 'warning'])
+                ->whereNotNull('keywords')
+                ->get(['title', 'scam_type', 'threat_level', 'keywords'])
+                ->map(function ($case) {
+                $weight = match ($case->threat_level) {
+                    'danger' => 30,
+                    'warning' => 20,
+                    default => 0,
+                };
+
+                if ($weight === 0) {
+                    return null;
+                }
+
+                $keywords = is_array($case->keywords) ? $case->keywords : explode(',', (string) $case->keywords);
+                $patterns = array_filter(array_map('trim', $keywords));
+
+                if (empty($patterns)) {
+                    return null;
+                }
+
+                return [
+                    'factor' => $case->title,
+                    'weight' => $weight,
+                    'scam_type' => $case->scam_type,
+                    'patterns' => array_values($patterns),
+                ];
+            })->filter()->values()->toArray();
+        });
+
+        $rules = array_merge($rules, $dynamicRules);
 
         return $this->matchRules($content, $rules);
     }
