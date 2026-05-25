@@ -59,6 +59,7 @@
                   <span class="media-tag text-mono">{{ log.type }}</span>
                 </td>
                 <td class="col-content">
+                  <div class="content-text text-mono" :title="log.input_text" style="color: var(--color-safe); font-size: 0.8rem; margin-bottom: 0.2rem;">> {{ log.input_text }}</div>
                   <div class="content-text" :title="log.snippet">{{ log.snippet }}</div>
                   <div class="sub-label text-mono">{{ log.type_label }}</div>
                 </td>
@@ -180,15 +181,23 @@ const loadHistoryLogs = async () => {
       const data = response.data.data;
       const items = data.items || [];
       
-      logsData.value = items.map(item => ({
-        id: item.id,
-        date: formatDate(item.created_at),
-        type: (item.input_type || '').toUpperCase(),
-        snippet: item.summary || '',
-        score: typeof item.risk_score === 'number' ? item.risk_score : 0,
-        status: ['safe', 'warning', 'danger'].includes(item.risk_level) ? item.risk_level : 'safe',
-        type_label: item.scam_type || ''
-      }));
+      logsData.value = items.map(item => {
+        let inputContent = '';
+        if (item.input_type === 'text') inputContent = item.content || '';
+        else if (item.input_type === 'url') inputContent = item.url || '';
+        else if (item.input_type === 'image') inputContent = '[ IMAGE ] ' + (item.ocr_text || '');
+        
+        return {
+          id: item.id,
+          date: formatDate(item.created_at),
+          type: (item.input_type || '').toUpperCase(),
+          snippet: item.summary || '',
+          input_text: inputContent || '[ No Input Content ]',
+          score: typeof item.risk_score === 'number' ? item.risk_score : 0,
+          status: ['safe', 'warning', 'danger'].includes(item.risk_level) ? item.risk_level : 'safe',
+          type_label: item.scam_type || ''
+        };
+      });
 
       if (data.pagination) {
         totalPages.value = typeof data.pagination.last_page === 'number' ? data.pagination.last_page : 1;
