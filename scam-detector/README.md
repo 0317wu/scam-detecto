@@ -22,7 +22,7 @@
 *   **樣式與打包**：Tailwind CSS v3 + Vite 6+
 *   **資料庫**：SQLite (預設 `database.sqlite`)
 *   **OCR 引擎**：Tesseract OCR
-*   **AI 整合**：Google Gemini 3.5 Flash / OpenAI GPT-4o-mini
+*   **AI 整合**：Google Gemini 3.5 Flash / OpenAI GPT-5.5 Instant
 
 ---
 
