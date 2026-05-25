@@ -126,6 +126,28 @@ class ScamAnalysisApiTest extends TestCase
         $this->assertSame(2, ScamScan::where('input_type', 'url')->count());
     }
 
+    public function test_repeated_image_analysis_reuses_cached_image_path_without_storing_duplicate_file(): void
+    {
+        Storage::fake('public');
+        $this->mockOcrText('立即加入 LINE 投資群組，保證獲利。');
+
+        $first = $this->postJson('/api/scam/analyze-image', [
+            'image' => $this->fakePngUpload(),
+        ]);
+        $second = $this->postJson('/api/scam/analyze-image', [
+            'image' => $this->fakePngUpload(),
+        ]);
+
+        $first->assertOk()->assertJsonPath('data.cache_hit', false);
+        $second->assertOk()->assertJsonPath('data.cache_hit', true);
+
+        $this->assertSame(
+            $first->json('data.image_path'),
+            $second->json('data.image_path')
+        );
+        Storage::disk('public')->assertCount('scam-images', 1);
+    }
+
     public function test_image_analysis_extracts_ocr_text_and_analyzes_it(): void
     {
         Storage::fake('public');

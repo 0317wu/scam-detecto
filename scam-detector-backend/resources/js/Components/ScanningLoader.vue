@@ -24,14 +24,14 @@
           <!-- 旋轉的掃描指針 -->
           <div class="radar-sweep"></div>
           
-          <!-- 隨機閃爍的目標點 (模擬識別出的詐騙因子) -->
+          <!-- 掃描中的視覺提示點 -->
           <div class="radar-blip blip-1"></div>
           <div class="radar-blip blip-2 text-mono">!</div>
 
-          <!-- 中心百分比文字 -->
+          <!-- 中心狀態文字 -->
           <div class="radar-center text-mono">
-            <span class="scan-percent">{{ progress }}%</span>
-            <span class="scan-tag">SCANNING</span>
+            <span class="scan-status">ANALYZING</span>
+            <span class="scan-tag">PLEASE WAIT</span>
           </div>
         </div>
       </div>
@@ -47,7 +47,7 @@
     <div class="scanning-status text-mono text-glow-safe">
       <span class="status-blink">></span> [ SYS_CORE: DECONSTRUCTING MULTIMODAL SOURCE DATA... ]
       <br />
-      <span class="status-blink">></span> [ STATUS: RUNNING DEEP SCAM DETECTOR V4.82 ]
+      <span class="status-blink">></span> [ STATUS: ANALYZING SUBMITTED CONTENT... ]
     </div>
   </div>
 </template>
@@ -55,41 +55,46 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 
-const props = defineProps({
-  progress: {
-    type: Number,
-    required: true,
-    default: 0
-  }
-});
-
 const codeLinesLeft = ref([]);
 const codeLinesRight = ref([]);
 let intervalId = null;
+let streamCursor = 0;
 
-const generateBinaryLine = () => {
-  let len = Math.floor(Math.random() * 8) + 8;
-  let str = '';
-  for (let i = 0; i < len; i++) {
-    str += Math.random() > 0.5 ? '1' : '0';
-  }
-  return str;
+const streamLines = [
+  '101101001010',
+  '011010110101',
+  '110010101101',
+  '001101011010',
+  '101011001101',
+  '010110100110',
+  '111001010011',
+  '000111010110',
+  '100101110010',
+  '011100101101',
+  '110101001011',
+  '001011101001',
+];
+
+const nextBinaryLine = () => {
+  const line = streamLines[streamCursor % streamLines.length];
+  streamCursor += 1;
+  return line;
 };
 
 onMounted(() => {
   // 初始化瀑布流數據
   for (let i = 0; i < 8; i++) {
-    codeLinesLeft.value.push(generateBinaryLine());
-    codeLinesRight.value.push(generateBinaryLine());
+    codeLinesLeft.value.push(nextBinaryLine());
+    codeLinesRight.value.push(nextBinaryLine());
   }
 
   // 動態更新二進位瀑布
   intervalId = setInterval(() => {
     codeLinesLeft.value.shift();
-    codeLinesLeft.value.push(generateBinaryLine());
+    codeLinesLeft.value.push(nextBinaryLine());
     
     codeLinesRight.value.shift();
-    codeLinesRight.value.push(generateBinaryLine());
+    codeLinesRight.value.push(nextBinaryLine());
   }, 150);
 });
 
@@ -284,7 +289,7 @@ onUnmounted(() => {
   50% { opacity: 0.8; transform: scale(1.2); }
 }
 
-/* 雷達中心進度顯示 */
+/* 雷達中心狀態顯示 */
 .radar-center {
   position: absolute;
   top: 50%;
@@ -298,8 +303,8 @@ onUnmounted(() => {
   text-shadow: 0 0 8px rgba(0, 242, 254, 0.7);
 }
 
-.scan-percent {
-  font-size: 1.6rem;
+.scan-status {
+  font-size: 1rem;
   font-weight: 700;
   color: var(--color-safe);
   letter-spacing: 0.5px;

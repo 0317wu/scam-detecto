@@ -3,6 +3,10 @@
     <div class="dashboard-grid">
       <!-- 左側主要核心舱 (佔比 2/3) -->
       <section class="main-console-section">
+        <div v-if="scanError" class="scan-error-panel text-mono text-glow-danger">
+          [SCAN_ERROR]: {{ scanError }}
+        </div>
+
         <!-- 階段 1：輸入模式 -->
         <ScannerInput 
           v-if="scanState === 'idle'" 
@@ -11,8 +15,7 @@
 
         <!-- 階段 2：雷達掃描中 -->
         <ScanningLoader 
-          v-else-if="scanState === 'scanning'" 
-          :progress="scanProgress" 
+          v-else-if="scanState === 'scanning'"
         />
 
         <!-- 階段 3：分析報告完成 -->
@@ -63,11 +66,19 @@
           </div>
         </div>
 
-        <!-- 下格：即時詐騙警報器 -->
+        <!-- 下格：後端案例庫摘要 -->
         <div class="side-card cyber-card alert-ticker-panel">
-          <h3 class="side-title text-mono">[ LIVE_SCAM_TICKER ]</h3>
+          <h3 class="side-title text-mono">[ CASE_ARCHIVE_FEED ]</h3>
           
           <div class="ticker-view">
+            <div v-if="isAlertLoading" class="ticker-status text-mono">
+              [ LOADING_CASES ]
+            </div>
+
+            <div v-else-if="activeAlerts.length === 0" class="ticker-status text-mono">
+              [ NO_CASES_AVAILABLE ]
+            </div>
+
             <div class="ticker-list" :style="{ transform: `translateY(-${tickerOffset}px)` }">
               <div 
                 v-for="(alert, idx) in activeAlerts" 
@@ -92,6 +103,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import CyberLayout from '@/Layouts/CyberLayout.vue';
 import ScannerInput from '@/Components/ScannerInput.vue';
@@ -100,24 +112,19 @@ import ResultCard from '@/Components/ResultCard.vue';
 
 // 狀態管理
 const scanState = ref('idle'); // idle | scanning | completed
-const scanProgress = ref(0);
 const ocrText = ref('');
 const analysisResult = ref(null);
+const scanError = ref('');
 
 const aiCoreStatus = ref('safe'); // safe | warning | danger
-const todayProcessed = ref(128); // 起始模擬數據
-const todayBlocked = ref(42);
+const todayProcessed = ref(0);
+const todayBlocked = ref(0);
+const page = usePage();
 
-// 警報跑馬燈數據
+// 後端案例庫摘要，不宣稱為即時警報。
 const tickerOffset = ref(0);
-const activeAlerts = ref([
-  { severity: 'danger', badge: '偽冒退稅', time: '15:32', content: '簡訊「國稅局通知，您有一筆退稅金尚未領取...」' },
-  { severity: 'danger', badge: '飆股群組', time: '15:28', content: 'FB 廣告引導加 LINE「李老師投資心法，保證獲利」' },
-  { severity: 'warning', badge: '疑似釣魚', time: '15:15', content: '可疑網址「http://post-tw-cargo.xyz」已封鎖' },
-  { severity: 'danger', badge: '假冒銀行', time: '14:50', content: '簡訊「您的網銀帳戶異常，請立即登入解除...」' },
-  { severity: 'warning', badge: '假求職', time: '14:22', content: '社團貼文「誠徵在家打字員，時薪 500 元起」' },
-  { severity: 'danger', badge: '偽冒水費', time: '13:05', content: '簡訊「您的水費已逾期，請點擊連結繳納...」' }
-]);
+const activeAlerts = ref([]);
+const isAlertLoading = ref(true);
 
 const coreStatusText = computed(() => {
   if (aiCoreStatus.value === 'safe') return 'SECURE (100%)';
@@ -125,10 +132,15 @@ const coreStatusText = computed(() => {
   return 'THREAT DETECTED';
 });
 
-// 模擬跑馬燈滾動
+// 案例摘要滾動
 let tickerTimer = null;
 const runTicker = () => {
   tickerTimer = setInterval(() => {
+    if (activeAlerts.value.length <= 3) {
+      tickerOffset.value = 0;
+      return;
+    }
+
     tickerOffset.value += 74; // 每個 ticker-item 的高度加上 margin
     if (tickerOffset.value >= 74 * (activeAlerts.value.length - 2)) {
       tickerOffset.value = 0;
@@ -136,28 +148,41 @@ const runTicker = () => {
   }, 4000);
 };
 
-// 啟動掃描辨識
+// 取得或生成訪客唯一識別碼
+const getVisitorId = () => {
+  let uuid = localStorage.getItem('visitor_uuid');
+  if (!uuid) {
+    uuid = 'v-' + Math.random().toString(36).substring(2, 15) + '-' + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('visitor_uuid', uuid);
+  }
+  return uuid;
+};
+
 // 啟動掃描辨識
 const handleStartScan = (payload) => {
   scanState.value = 'scanning';
-  scanProgress.value = 0;
   ocrText.value = '';
   analysisResult.value = null;
+  scanError.value = '';
 
   let apiFinished = false;
   let apiResponse = null;
+  let apiError = null;
+
+  const visitorId = getVisitorId();
 
   // 1. 根據分析類型發送真實 API 請求
   let requestPromise;
   if (payload.type === 'text') {
-    requestPromise = axios.post('/api/scam/analyze-text', { content: payload.content });
+    requestPromise = axios.post('/api/scam/analyze-text', { content: payload.content, visitor_id: visitorId });
   } else if (payload.type === 'url') {
-    requestPromise = axios.post('/api/scam/analyze-url', { url: payload.content });
+    requestPromise = axios.post('/api/scam/analyze-url', { url: payload.content, visitor_id: visitorId });
   } else if (payload.type === 'image') {
     const formData = new FormData();
     // 使用真實的圖片檔案物件，優先嘗試 imageFile，再嘗試 file，最後退回到 base64/字串（如有需要）
     const imageObj = payload.imageFile || payload.file || payload.content;
     formData.append('image', imageObj);
+    formData.append('visitor_id', visitorId);
     requestPromise = axios.post('/api/scam/analyze-image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -174,86 +199,117 @@ const handleStartScan = (payload) => {
       apiFinished = true;
     })
     .catch((error) => {
-      console.error('分析 API 請求失敗，啟動防呆臨時引擎:', error);
-      // 模擬通信失敗防呆
-      apiResponse = {
-        risk_level: 'warning',
-        risk_score: 50,
-        scam_type: '通信鏈結異常警告',
-        summary: '目前無法與雲端 AI 核心同步，以下為本地防火牆規則引擎辨識結果。',
-        risk_factors: ['本地規則警告', '未知外部連結'],
-        details: '因為伺服器網路異常，我們啟動了本地臨時防範引擎。若此訊息要求轉帳或提供個人資料，請提高警覺。',
-        suggestions: ['請稍後在網路通暢時再次掃描。', '請勿在來源不明的表單輸入信用卡號。'],
-        ocr_text: ''
-      };
+      console.error('分析 API 請求失敗:', error);
+      apiError = error;
       apiFinished = true;
-    });
+    })
+    .finally(() => {
+      if (!apiFinished) return;
 
-  // 2. 模擬進度條增加
-  const progressTimer = setInterval(() => {
-    if (scanProgress.value < 90) {
-      scanProgress.value += Math.floor(Math.random() * 8) + 2;
-    } else if (apiFinished && scanProgress.value < 100) {
-      scanProgress.value += 5;
-      if (scanProgress.value > 100) scanProgress.value = 100;
-    }
+      if (apiError) {
+        scanError.value = resolveApiErrorMessage(apiError);
+        scanState.value = 'idle';
+        aiCoreStatus.value = 'warning';
+        return;
+      }
 
-    // 達到 100% 且 API 已回傳
-    if (scanProgress.value >= 100 && apiFinished) {
-      clearInterval(progressTimer);
-      
-      // 3. 適配返回欄位與 Vue state 綁定（包含完善防呆）
       ocrText.value = apiResponse.ocr_text || '';
       aiCoreStatus.value = apiResponse.risk_level || 'safe';
-      
+
       analysisResult.value = {
         status: apiResponse.risk_level || 'safe',
         score: apiResponse.risk_score !== undefined ? apiResponse.risk_score : 0,
         title: apiResponse.scam_type || '無異常',
         summary: apiResponse.summary || '未發現明顯詐騙特徵',
         risk_factors: apiResponse.risk_factors || [],
-        details: apiResponse.details || '經過初步分析，該內容並無明確的詐騙危險指標。請繼續保持警覺。',
+        details: apiResponse.details || fallbackDetails(apiResponse.risk_level),
         recommendations: apiResponse.suggestions || []
       };
-      
+
       scanState.value = 'completed';
 
-      // 今日計數器加 1
       todayProcessed.value += 1;
       if (apiResponse.risk_level === 'danger') {
         todayBlocked.value += 1;
       }
-    }
-  }, 100);
+    });
+};
+
+const resolveApiErrorMessage = (error) => {
+  const status = error?.response?.status;
+  const message = error?.response?.data?.message;
+  const errors = error?.response?.data?.errors;
+
+  if (errors && typeof errors === 'object') {
+    const firstError = Object.values(errors).flat().find(Boolean);
+    if (firstError) return firstError;
+  }
+
+  if (status === 401) return '請先登入後再查看或儲存個人分析紀錄。';
+  if (status === 429) return '掃描請求過於頻繁，請稍候再試。';
+  if (status === 503) return '圖片 OCR 服務暫時無法使用，請稍後重試。';
+  if (message) return message;
+
+  return '分析服務暫時無法連線，請稍後再試。';
+};
+
+const fallbackDetails = (riskLevel) => {
+  if (riskLevel === 'danger') {
+    return '系統偵測到多個高風險詐騙特徵，請勿點擊連結、加入陌生群組、匯款或提供個人資料。';
+  }
+
+  if (riskLevel === 'warning') {
+    return '系統偵測到可疑特徵，建議先從官方管道查證來源與內容真偽。';
+  }
+
+  return '目前未偵測到明確詐騙危險指標，但仍建議確認訊息來源。';
 };
 
 // 重設
 const resetScanner = () => {
   scanState.value = 'idle';
-  scanProgress.value = 0;
   aiCoreStatus.value = 'safe';
+  scanError.value = '';
+};
+
+const loadUserStats = () => {
+  const params = {};
+  if (!page.props.auth?.user) {
+    params.visitor_id = getVisitorId();
+  }
+
+  axios.get('/api/scam/stats', { params })
+    .then((response) => {
+      const summary = response.data?.data?.summary;
+      if (!summary) return;
+
+      todayProcessed.value = summary.total_scans || 0;
+      todayBlocked.value = summary.danger_scans || 0;
+    })
+    .catch((err) => {
+      console.error('無法載入使用者統計資料:', err);
+    });
 };
 
 onMounted(() => {
-  // 4. 對接跑馬燈 Ticker 案例 API
+  loadUserStats();
+
+  // 4. 對接後端案例庫 API
   axios.get('/api/scam/cases')
     .then((response) => {
       const casesData = response.data?.data?.cases || [];
       if (casesData.length > 0) {
         activeAlerts.value = casesData.map(c => {
-          let timeStr = '剛剛';
+          let timeStr = '案例庫';
           if (c.created_at) {
-            // 從 '2026-05-24 15:32:00' 格式提取出 '15:32'
+            // 只顯示案例日期，避免誤導成即時發生時間。
             const parts = c.created_at.split(' ');
-            if (parts.length >= 2) {
-              const hm = parts[1].split(':');
-              if (hm.length >= 2) {
-                timeStr = `${hm[0]}:${hm[1]}`;
-              }
+            if (parts.length >= 1) {
+              timeStr = parts[0];
             }
           }
           return {
-            severity: 'danger', // 既為已通報之真實詐騙案例，設定為高風險
+            severity: c.threat_level || 'warning',
             badge: c.scam_type || '詐騙警報',
             time: timeStr,
             content: c.description || c.title || ''
@@ -262,7 +318,10 @@ onMounted(() => {
       }
     })
     .catch((err) => {
-      console.error('無法獲取即時詐騙案例數據:', err);
+      console.error('無法獲取詐騙案例資料:', err);
+    })
+    .finally(() => {
+      isAlertLoading.value = false;
     });
 
   runTicker();
@@ -285,6 +344,15 @@ onUnmounted(() => {
 .main-console-section {
   display: flex;
   flex-direction: column;
+}
+
+.scan-error-panel {
+  background: rgba(255, 8, 68, 0.08);
+  border: 1px solid rgba(255, 8, 68, 0.25);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
 }
 
 .side-info-section {
@@ -454,6 +522,12 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 10px;
   transition: transform 0.5s ease-in-out;
+}
+
+.ticker-status {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  padding: 0.65rem;
 }
 
 .ticker-item {

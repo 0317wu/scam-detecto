@@ -14,14 +14,16 @@ class ScamDashboardController extends Controller
 {
     public function stats(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $user = $request->user() ?: $request->user('sanctum');
+        $userId = $user?->id;
+        $visitorId = $request->input('visitor_id') ?: $request->header('X-Visitor-Id');
         $startDate = CarbonImmutable::today()->subDays(6);
 
         return response()->success([
-            'weekly_trend' => $this->weeklyTrend($userId, $startDate),
-            'scam_type_distribution' => $this->scamTypeDistribution($userId),
-            'risk_level_distribution' => $this->riskLevelDistribution($userId),
-            'summary' => $this->summary($userId),
+            'weekly_trend' => $this->weeklyTrend($userId, $visitorId, $startDate),
+            'scam_type_distribution' => $this->scamTypeDistribution($userId, $visitorId),
+            'risk_level_distribution' => $this->riskLevelDistribution($userId, $visitorId),
+            'summary' => $this->summary($userId, $visitorId),
         ], 'stats_retrieved');
     }
 
@@ -37,6 +39,10 @@ class ScamDashboardController extends Controller
                 'title' => $case->title,
                 'description' => $case->description,
                 'scam_type' => $case->scam_type,
+                'threat_level' => $case->threat_level,
+                'keywords' => $case->keywords ?? [],
+                'method' => $case->method,
+                'rules' => $case->rules ?? [],
                 'source_url' => $case->source_url,
                 'created_at' => $case->created_at?->format('Y-m-d H:i:s'),
             ])
@@ -47,14 +53,28 @@ class ScamDashboardController extends Controller
         ], 'cases_retrieved');
     }
 
-    private function weeklyTrend(int $userId, CarbonImmutable $startDate): array
+    /**
+     * 套用擁有者過濾（已登入使用者或訪客識別碼）
+     */
+    private function applyOwnerQuery($query, ?int $userId, ?string $visitorId)
     {
-        $rows = ScamScan::query()
+        if ($userId) {
+            return $query->where('user_id', $userId);
+        } elseif ($visitorId) {
+            return $query->whereNull('user_id')->where('visitor_id', $visitorId);
+        }
+        return $query->whereRaw('1 = 0');
+    }
+
+    private function weeklyTrend(?int $userId, ?string $visitorId, CarbonImmutable $startDate): array
+    {
+        $query = ScamScan::query()
             ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->where('user_id', $userId)
             ->whereDate('created_at', '>=', $startDate->toDateString())
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->pluck('count', 'date');
+            ->groupBy(DB::raw('DATE(created_at)'));
+
+        $this->applyOwnerQuery($query, $userId, $visitorId);
+        $rows = $query->pluck('count', 'date');
 
         return collect(range(0, 6))
             ->map(function (int $offset) use ($startDate, $rows) {
@@ -69,14 +89,16 @@ class ScamDashboardController extends Controller
             ->all();
     }
 
-    private function scamTypeDistribution(int $userId): array
+    private function scamTypeDistribution(?int $userId, ?string $visitorId): array
     {
-        return ScamScan::query()
+        $query = ScamScan::query()
             ->selectRaw('COALESCE(scam_type, ?) as scam_type, COUNT(*) as count', ['未分類'])
-            ->where('user_id', $userId)
             ->groupBy('scam_type')
-            ->orderByDesc('count')
-            ->get()
+            ->orderByDesc('count');
+
+        $this->applyOwnerQuery($query, $userId, $visitorId);
+
+        return $query->get()
             ->map(fn (ScamScan $scan) => [
                 'scam_type' => $scan->scam_type,
                 'count' => (int) $scan->count,
@@ -85,13 +107,14 @@ class ScamDashboardController extends Controller
             ->all();
     }
 
-    private function riskLevelDistribution(int $userId): array
+    private function riskLevelDistribution(?int $userId, ?string $visitorId): array
     {
-        $counts = ScamScan::query()
+        $query = ScamScan::query()
             ->selectRaw('risk_level, COUNT(*) as count')
-            ->where('user_id', $userId)
-            ->groupBy('risk_level')
-            ->pluck('count', 'risk_level');
+            ->groupBy('risk_level');
+
+        $this->applyOwnerQuery($query, $userId, $visitorId);
+        $counts = $query->pluck('count', 'risk_level');
 
         return collect(['safe', 'warning', 'danger'])
             ->map(fn (string $level) => [
@@ -102,13 +125,25 @@ class ScamDashboardController extends Controller
             ->all();
     }
 
-    private function summary(int $userId): array
+    private function summary(?int $userId, ?string $visitorId): array
     {
+        $totalQuery = ScamScan::query();
+        $this->applyOwnerQuery($totalQuery, $userId, $visitorId);
+
+        $dangerQuery = ScamScan::query()->where('risk_level', 'danger');
+        $this->applyOwnerQuery($dangerQuery, $userId, $visitorId);
+
+        $warningQuery = ScamScan::query()->where('risk_level', 'warning');
+        $this->applyOwnerQuery($warningQuery, $userId, $visitorId);
+
+        $safeQuery = ScamScan::query()->where('risk_level', 'safe');
+        $this->applyOwnerQuery($safeQuery, $userId, $visitorId);
+
         return [
-            'total_scans' => ScamScan::where('user_id', $userId)->count(),
-            'danger_scans' => ScamScan::where('user_id', $userId)->where('risk_level', 'danger')->count(),
-            'warning_scans' => ScamScan::where('user_id', $userId)->where('risk_level', 'warning')->count(),
-            'safe_scans' => ScamScan::where('user_id', $userId)->where('risk_level', 'safe')->count(),
+            'total_scans' => $totalQuery->count(),
+            'danger_scans' => $dangerQuery->count(),
+            'warning_scans' => $warningQuery->count(),
+            'safe_scans' => $safeQuery->count(),
         ];
     }
 }

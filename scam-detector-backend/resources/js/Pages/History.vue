@@ -107,12 +107,24 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import CyberLayout from '@/Layouts/CyberLayout.vue';
 import StatChart from '@/Components/StatChart.vue';
 
+const page = usePage();
 const searchQuery = ref('');
 const logsData = ref([]);
+
+// 取得或生成訪客唯一識別碼
+const getVisitorId = () => {
+  let uuid = localStorage.getItem('visitor_uuid');
+  if (!uuid) {
+    uuid = 'v-' + Math.random().toString(36).substring(2, 15) + '-' + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('visitor_uuid', uuid);
+  }
+  return uuid;
+};
 
 // 為了相容現有 Template 的變數，將 filteredLogs 與 paginatedLogs 對接至 logsData
 const filteredLogs = computed(() => logsData.value);
@@ -151,13 +163,18 @@ const formatDate = (dateStr) => {
 const loadHistoryLogs = async () => {
   isLoadingLogs.value = true;
   try {
-    const response = await axios.get('/api/scam/history', {
-      params: {
-        search: searchQuery.value || '',
-        page: currentPage.value,
-        per_page: itemsPerPage.value
-      }
-    });
+    const params = {
+      search: searchQuery.value || '',
+      page: currentPage.value,
+      per_page: itemsPerPage.value
+    };
+
+    // 若使用者未登入，則帶入訪客識別碼
+    if (!page.props.auth?.user) {
+      params.visitor_id = getVisitorId();
+    }
+
+    const response = await axios.get('/api/scam/history', { params });
 
     if (response.data && response.data.success && response.data.data) {
       const data = response.data.data;
@@ -266,7 +283,12 @@ const formatMD = (dateStr) => {
 const loadStatsData = async () => {
   isLoadingStats.value = true;
   try {
-    const response = await axios.get('/api/scam/stats');
+    const params = {};
+    if (!page.props.auth?.user) {
+      params.visitor_id = getVisitorId();
+    }
+
+    const response = await axios.get('/api/scam/stats', { params });
     if (response.data && response.data.success && response.data.data) {
       const data = response.data.data;
       

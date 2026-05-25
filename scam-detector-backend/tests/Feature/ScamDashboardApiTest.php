@@ -13,11 +13,34 @@ class ScamDashboardApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_cannot_access_stats(): void
+    public function test_guest_can_access_stats_with_visitor_id(): void
     {
+        $visitorId = 'v-test-visitor-1234';
+
+        // 建立一筆訪客掃描紀錄
+        ScamScan::create([
+            'visitor_id' => $visitorId,
+            'input_type' => 'text',
+            'content' => '訪客測試訊息',
+            'risk_score' => 70,
+            'risk_level' => 'warning',
+            'scam_type' => '假包裹',
+            'summary' => '摘要',
+            'created_at' => CarbonImmutable::today(),
+        ]);
+
+        // 不帶 visitor_id 時，應回傳空統計（皆為 0）
         $this->getJson('/api/scam/stats')
-            ->assertUnauthorized()
-            ->assertJsonPath('message', 'unauthenticated');
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.summary.total_scans', 0);
+
+        // 帶有 visitor_id 時，應回傳對應的統計
+        $this->getJson("/api/scam/stats?visitor_id={$visitorId}")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.summary.total_scans', 1)
+            ->assertJsonPath('data.summary.warning_scans', 1);
     }
 
     public function test_user_can_get_own_stats(): void
@@ -86,12 +109,24 @@ class ScamDashboardApiTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     'cases' => [
-                        '*' => ['id', 'title', 'description', 'scam_type', 'source_url', 'created_at'],
+                        '*' => [
+                            'id',
+                            'title',
+                            'description',
+                            'scam_type',
+                            'threat_level',
+                            'keywords',
+                            'method',
+                            'rules',
+                            'source_url',
+                            'created_at',
+                        ],
                     ],
                 ],
             ])
             ->assertJsonFragment([
                 'title' => '假投資群組詐騙',
+                'threat_level' => 'danger',
             ]);
     }
 

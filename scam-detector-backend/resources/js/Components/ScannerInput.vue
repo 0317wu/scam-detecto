@@ -235,7 +235,7 @@ const initializeScan = () => {
       triggerShake('網址結構異常，可能無法取得伺服器響應。');
       return;
     }
-    payload.content = urlInput.value;
+    payload.content = normalizeUrl(urlInput.value);
   } else if (activeTab.value === 'image') {
     if (!imagePreview.value) {
       triggerShake('未偵測到可分析之圖像資料。');
@@ -247,6 +247,15 @@ const initializeScan = () => {
   }
 
   emit('start-scan', payload);
+};
+
+const normalizeUrl = (value) => {
+  const trimmed = value.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `https://${trimmed}`;
 };
 </script>
 

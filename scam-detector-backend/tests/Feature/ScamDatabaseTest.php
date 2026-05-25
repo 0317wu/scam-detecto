@@ -42,5 +42,12 @@ class ScamDatabaseTest extends TestCase
             'title' => '假投資群組詐騙',
             'is_active' => true,
         ]);
+
+        $case = ScamCase::where('title', '假投資群組詐騙')->firstOrFail();
+
+        $this->assertSame('danger', $case->threat_level);
+        $this->assertContains('保證獲利', $case->keywords);
+        $this->assertNotEmpty($case->method);
+        $this->assertGreaterThanOrEqual(3, count($case->rules));
     }
 }

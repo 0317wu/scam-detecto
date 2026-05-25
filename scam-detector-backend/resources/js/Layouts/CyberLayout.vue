@@ -76,6 +76,21 @@
             </span>
             <span class="nav-text">ARCHIVES</span>
           </Link>
+
+          <!-- 僅管理員可見的案例庫維護入口 -->
+          <Link 
+            v-if="$page.props.auth?.user?.is_admin"
+            href="/cases-manager" 
+            class="nav-btn text-mono" 
+            :class="{ active: $page.url.startsWith('/cases-manager') }"
+          >
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+              </svg>
+            </span>
+            <span class="nav-text">CASES_DB</span>
+          </Link>
         </div>
 
         <div class="sidebar-auth-panel text-mono">
@@ -83,14 +98,22 @@
           <div v-if="$page.props.auth && $page.props.auth.user" class="auth-logged-in">
             <span class="auth-title">OPERATOR:</span>
             <span class="auth-user-name text-glow-safe">{{ $page.props.auth.user.name }}</span>
-            <Link 
-              href="/logout" 
-              method="post" 
-              as="button" 
-              class="cyber-auth-btn logout-btn"
-            >
-              [ DISCONNECT ]
-            </Link>
+            <div class="auth-btn-group">
+              <Link 
+                href="/profile" 
+                class="cyber-auth-btn"
+              >
+                [ SETTINGS ]
+              </Link>
+              <Link 
+                href="/logout" 
+                method="post" 
+                as="button" 
+                class="cyber-auth-btn logout-btn"
+              >
+                [ DISCONNECT ]
+              </Link>
+            </div>
           </div>
           <!-- 未登入 -->
           <div v-else class="auth-logged-out">

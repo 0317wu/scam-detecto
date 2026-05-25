@@ -12,11 +12,33 @@ class ScamHistoryApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_cannot_access_history(): void
+    public function test_guest_can_access_history_with_visitor_id(): void
     {
+        $visitorId = 'v-test-visitor-1234';
+
+        // 建立一筆訪客掃描紀錄
+        ScamScan::create([
+            'visitor_id' => $visitorId,
+            'input_type' => 'text',
+            'content' => '訪客測試訊息',
+            'risk_score' => 70,
+            'risk_level' => 'warning',
+            'scam_type' => '假包裹',
+            'summary' => '摘要',
+        ]);
+
+        // 不帶 visitor_id 時，應回傳空列表（成功但無資料）
         $this->getJson('/api/scam/history')
-            ->assertUnauthorized()
-            ->assertJsonPath('message', 'unauthenticated');
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(0, 'data.items');
+
+        // 帶有 visitor_id 時，應回傳對應的歷史紀錄
+        $this->getJson("/api/scam/history?visitor_id={$visitorId}")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.content', '訪客測試訊息');
     }
 
     public function test_user_can_list_only_own_history_with_pagination(): void

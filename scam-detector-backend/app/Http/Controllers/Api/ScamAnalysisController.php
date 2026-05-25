@@ -18,9 +18,11 @@ class ScamAnalysisController extends Controller
     {
         $validated = $request->validate([
             'content' => ['required', 'string', 'min:2', 'max:5000'],
+            'visitor_id' => ['nullable', 'string', 'max:36'],
         ]);
 
-        $result = $this->fraudService->analyzeText($validated['content'], $request->user());
+        $visitorId = $validated['visitor_id'] ?? $request->header('X-Visitor-Id');
+        $result = $this->fraudService->analyzeText($validated['content'], $request->user(), $visitorId);
 
         return response()->success(
             $this->formatScan($result['scan'], $result['cache_hit']),
@@ -32,9 +34,11 @@ class ScamAnalysisController extends Controller
     {
         $validated = $request->validate([
             'url' => ['required', 'url', 'max:2048'],
+            'visitor_id' => ['nullable', 'string', 'max:36'],
         ]);
 
-        $result = $this->fraudService->analyzeUrl($validated['url'], $request->user());
+        $visitorId = $validated['visitor_id'] ?? $request->header('X-Visitor-Id');
+        $result = $this->fraudService->analyzeUrl($validated['url'], $request->user(), $visitorId);
 
         return response()->success(
             $this->formatScan($result['scan'], $result['cache_hit']),
@@ -46,9 +50,11 @@ class ScamAnalysisController extends Controller
     {
         $validated = $request->validate([
             'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'visitor_id' => ['nullable', 'string', 'max:36'],
         ]);
 
-        $result = $this->fraudService->analyzeImage($validated['image'], $request->user());
+        $visitorId = $validated['visitor_id'] ?? $request->header('X-Visitor-Id');
+        $result = $this->fraudService->analyzeImage($validated['image'], $request->user(), $visitorId);
 
         return response()->success(
             $this->formatScan($result['scan'], $result['cache_hit']),

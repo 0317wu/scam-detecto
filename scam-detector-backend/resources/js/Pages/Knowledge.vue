@@ -9,6 +9,18 @@
 
       <!-- 文章卡片列表 -->
       <section class="archives-grid">
+        <div v-if="isLoading" class="archive-status cyber-card text-mono">
+          [ LOADING_ARCHIVES ] 正在同步後端詐騙案例資料...
+        </div>
+
+        <div v-else-if="loadError" class="archive-status cyber-card text-mono status-error">
+          [ ARCHIVE_SYNC_FAILED ] {{ loadError }}
+        </div>
+
+        <div v-else-if="articles.length === 0" class="archive-status cyber-card text-mono">
+          [ NO_ARCHIVES_AVAILABLE ] 目前後端尚未建立公開案例。
+        </div>
+
         <article 
           v-for="article in articles" 
           :key="article.id" 
@@ -24,7 +36,7 @@
               <!-- 狀態指示呼吸燈 -->
               <span class="threat-dot" :class="'threat-' + article.threat"></span>
               <div class="title-group">
-                <span class="archive-code text-mono text-glow-safe">ARCHIVE_0{{ article.id }} //</span>
+                <span class="archive-code text-mono text-glow-safe">ARCHIVE_{{ article.archiveCode }} //</span>
                 <h3 class="archive-title">{{ article.title }}</h3>
               </div>
             </div>
@@ -67,6 +79,16 @@
                 </li>
               </ul>
             </div>
+
+            <a
+              v-if="article.sourceUrl"
+              :href="article.sourceUrl"
+              class="source-link text-mono"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              [ SOURCE_TRACE ] 查看來源
+            </a>
           </div>
         </article>
       </section>
@@ -75,10 +97,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import axios from 'axios';
 import CyberLayout from '@/Layouts/CyberLayout.vue';
 
 const expandedId = ref(null);
+const articles = ref([]);
+const isLoading = ref(true);
+const loadError = ref('');
 
 const toggleExpand = (id) => {
   if (expandedId.value === id) {
@@ -88,61 +114,38 @@ const toggleExpand = (id) => {
   }
 };
 
-// 詐騙文章 Mock 數據
-const articles = ref([
-  {
-    id: 1,
-    title: '假冒政府機關退稅簡訊',
-    summary: '歹徒發送簡訊假冒國稅局或監理所，宣稱有退稅款未領或罰金未繳，引導點擊可疑短網頁輸入卡號。',
-    threat: 'danger',
-    keywords: ['退稅領取', '國稅局', '監理所', '逾期未繳', '補繳費'],
-    method: '利用民眾貪小便宜或害怕受罰的心理，發送急迫性的字眼（如即將逾期、最後通知），並附上高仿真的虛假網址。使用者點擊後會進入要求輸入身分證號、信用卡資訊的釣魚表單，進而盜刷信用卡或竊取個資。',
-    rules: [
-      '政府機關的官方域名必以「.gov.tw」結尾，絕不會使用 .xyz, .top 等異常域名。',
-      '政府退稅或繳費均有法定通知流程，絕不會透過「簡訊」發送點擊連結直接辦理。',
-      '如有疑慮，請撥打「165」專線，或至該機關官方入口網站查詢，切勿直接從簡訊連結進入。'
-    ]
-  },
-  {
-    id: 2,
-    title: '飆股推薦與名師投資群組',
-    summary: '以社群廣告或私訊，假借財經專家名義推薦飆股、保證獲利，誘導加入 LINE 私密群組進行殺豬盤詐騙。',
-    threat: 'danger',
-    keywords: ['穩賺不賠', '飆股推薦', '限時免費', '加LINE明牌', '代操盤'],
-    method: '詐騙集團在 FB 或 YouTube 投放廣告，假冒如曹興誠、謝金河等名人。將受害者拉進 LINE 群組後，由「助理」或「老師」每日分析行情、報明牌。隨後指引受害者下載假的投資 APP。初期故意讓受害者小額獲利出金以獲取信任，等投入巨額資金後，便以申報稅金、操作失誤等名義拒絕出金，甚至直接封鎖群組。',
-    rules: [
-      '所有標榜「保證獲利」、「穩賺不賠」、「高回報無風險」的投資管道 100% 均為詐騙。',
-      '請勿下載任何非官方 App Store / Google Play 商店的虛假投資 APP，其數據均可由後台修改。',
-      '理財請尋求金管會核准的合法券商，切勿聽信 LINE 群組內所謂「投顧名師」的私人操作指引。'
-    ]
-  },
-  {
-    id: 3,
-    title: '物流快遞包裹異常通知',
-    summary: '假冒中華郵政、黑貓宅急便等，以簡訊宣稱包裹寄送失敗，要求點擊連結重新確認配送資訊或支付資費。',
-    threat: 'warning',
-    keywords: ['包裹寄送失敗', '重新確認地址', '補繳運費', '中華郵政', '黑貓宅急便'],
-    method: '此為典型釣魚手段，利用網購盛行民眾常有包裹的習慣。點擊簡訊內的縮網址後，會被引導至高仿真的快遞網站，頁面提示需要輸入信用卡資訊補繳幾十元的「超重費」或「重配費」。一旦輸入卡號與簡訊驗證碼 (OTP)，歹徒便在後台綁定 Apple Pay 等進行大額盜刷。',
-    rules: [
-      '收到包裹異常簡訊，請先查核您是否有網購寄送中的包裹。',
-      '快遞公司通常會直接撥打電話聯繫，絕不會發送簡訊連結要求線上刷卡繳交微額差價。',
-      '若點擊進入網頁，在未經確認前，請勿隨意填寫並送出信用卡 OTP 簡訊驗證碼。'
-    ]
-  },
-  {
-    id: 4,
-    title: '解除分期付款設定陷阱',
-    summary: '假冒電商客服來電，謊稱因為系統出錯或實習生設定錯誤，導致扣款重複，要求至 ATM 或網銀解除設定。',
-    threat: 'danger',
-    keywords: ['重複扣款', '自動扣款', '解除設定', 'ATM操作', '實習生錯誤'],
-    method: '詐騙集團透過不法管道取得民眾的電商消費紀錄，假冒該電商客服或銀行人員致電。宣稱因為系統設定錯誤，會每月自動從信用卡重複扣款。受害者慌張之下，歹徒便佯稱要引導其前往 ATM 或登入網路銀行執行「解除設定」，實則是引導受害者執行「轉帳匯款」程序，將資金匯至人頭帳戶。',
-    rules: [
-      'ATM 與網路銀行僅有「提款」與「匯出」功能，絕對沒有任何「解除重複扣款」或「身份驗證」的功能。',
-      '凡來電號碼開頭有「+886」或「+」者，均為境外竄改來電，請直接掛斷。',
-      '接獲此類客服電話，請主動掛斷，並撥打該電商官網提供的官方客服電話或 165 求證。'
-    ]
+const toArchiveArticle = (item, index) => {
+  return {
+    id: item.id,
+    archiveCode: String(index + 1).padStart(2, '0'),
+    title: item.title,
+    summary: item.description,
+    threat: item.threat_level || 'warning',
+    keywords: item.keywords || [],
+    method: item.method || '後端尚未提供此案例的詳細手法說明。',
+    rules: item.rules || [],
+    sourceUrl: item.source_url,
+    createdAt: item.created_at,
+  };
+};
+
+const loadCases = async () => {
+  isLoading.value = true;
+  loadError.value = '';
+
+  try {
+    const response = await axios.get('/api/scam/cases');
+    const cases = response.data?.data?.cases ?? [];
+    articles.value = cases.map(toArchiveArticle);
+  } catch (error) {
+    console.error('Failed to load scam cases', error);
+    loadError.value = '無法取得後端案例資料，請確認 Laravel API 服務是否正常。';
+  } finally {
+    isLoading.value = false;
   }
-]);
+};
+
+onMounted(loadCases);
 </script>
 
 <style scoped>
@@ -179,6 +182,16 @@ const articles = ref([
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.archive-status {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.status-error {
+  color: var(--color-danger);
 }
 
 .archive-card {
@@ -360,6 +373,18 @@ const articles = ref([
 .rule-num {
   color: var(--color-safe);
   font-weight: bold;
+}
+
+.source-link {
+  align-self: flex-start;
+  color: var(--color-safe);
+  font-size: 0.75rem;
+  text-decoration: none;
+  letter-spacing: 0.6px;
+}
+
+.source-link:hover {
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
 }
 
 /* 狀態色 */

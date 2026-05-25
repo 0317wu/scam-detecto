@@ -38,7 +38,7 @@
       </div>
     </div>
 
-    <!-- 模擬 OCR 結果 (僅在有提取圖片文字時展示) -->
+    <!-- 後端 OCR 結果 (僅在有提取圖片文字時展示) -->
     <div v-if="ocrText" class="ocr-section">
       <h3 class="section-title text-mono">[ OCR_IMAGE_TEXT_EXTRACTED ]</h3>
       <div class="ocr-box text-mono">
@@ -150,13 +150,20 @@ const strokeDashOffset = computed(() => {
   return strokeDashArray - (percent / 100) * strokeDashArray;
 });
 
-// 分享報告 Mock 複製連結
+// 複製目前分析摘要，不產生尚未實作的外部報告連結。
 const shareReport = () => {
-  const mockUrl = `https://scam-shield.pro/report/${Math.random().toString(36).substring(7)}`;
-  navigator.clipboard.writeText(mockUrl).then(() => {
-    showToast('[SUCCESS]: 防詐騙分析報告連結已複製到剪貼簿！');
+  const reportText = [
+    `詐騙風險分數：${props.result.score}`,
+    `狀態：${statusLabel.value}`,
+    `類型：${props.result.title}`,
+    `摘要：${props.result.summary}`,
+    `建議：${(props.result.recommendations || []).join('；')}`,
+  ].join('\n');
+
+  navigator.clipboard.writeText(reportText).then(() => {
+    showToast('[SUCCESS]: 防詐騙分析摘要已複製到剪貼簿！');
   }).catch(() => {
-    showToast('[ERROR]: 無法自動複製，請手動複製網址。');
+    showToast('[ERROR]: 無法自動複製，請手動複製畫面內容。');
   });
 };
 

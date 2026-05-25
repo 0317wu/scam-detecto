@@ -17,13 +17,27 @@ class ScamHistoryController extends Controller
             'input_type' => ['nullable', 'in:text,url,image'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'visitor_id' => ['nullable', 'string', 'max:36'],
         ]);
 
         $perPage = (int) ($validated['per_page'] ?? 5);
 
-        $query = ScamScan::query()
-            ->where('user_id', $request->user()->id)
-            ->latest();
+        // 取得已登入使用者或訪客識別碼
+        $user = $request->user() ?: $request->user('sanctum');
+        $visitorId = $validated['visitor_id'] ?? $request->header('X-Visitor-Id');
+
+        $query = ScamScan::query();
+
+        if ($user) {
+            $query->where('user_id', $user->id);
+        } elseif ($visitorId) {
+            $query->whereNull('user_id')->where('visitor_id', $visitorId);
+        } else {
+            // 若皆無，則不回傳任何紀錄
+            $query->whereRaw('1 = 0');
+        }
+
+        $query->latest();
 
         if (! empty($validated['risk_level'])) {
             $query->where('risk_level', $validated['risk_level']);
@@ -62,7 +76,18 @@ class ScamHistoryController extends Controller
 
     public function show(Request $request, ScamScan $scan): JsonResponse
     {
-        if ($scan->user_id !== $request->user()->id) {
+        $user = $request->user() ?: $request->user('sanctum');
+        $visitorId = $request->input('visitor_id') ?: $request->header('X-Visitor-Id');
+
+        if ($user) {
+            if ($scan->user_id !== $user->id) {
+                return response()->error('scan_not_found', null, 404);
+            }
+        } elseif ($visitorId) {
+            if ($scan->user_id !== null || $scan->visitor_id !== $visitorId) {
+                return response()->error('scan_not_found', null, 404);
+            }
+        } else {
             return response()->error('scan_not_found', null, 404);
         }
 

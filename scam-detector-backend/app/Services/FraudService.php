@@ -22,47 +22,60 @@ class FraudService
         private readonly AiFraudService $aiFraudService,
     ) {}
 
-    public function analyzeText(string $content, ?User $user = null): array
+    public function analyzeText(string $content, ?User $user = null, ?string $visitorId = null): array
     {
         return $this->analyzeWithCache(
             'text',
             trim($content),
             ['content' => $content],
             fn () => $this->buildAnalysis('text', $content, $this->ruleHelper->detectTextRules($content)),
-            $user
+            $user,
+            $visitorId
         );
     }
 
-    public function analyzeUrl(string $url, ?User $user = null): array
+    public function analyzeUrl(string $url, ?User $user = null, ?string $visitorId = null): array
     {
         return $this->analyzeWithCache(
             'url',
             strtolower(trim($url)),
             ['url' => $url],
             fn () => $this->buildAnalysis('url', $url, $this->ruleHelper->detectUrlRules($url)),
-            $user
+            $user,
+            $visitorId
         );
     }
 
-    public function analyzeImage(UploadedFile $image, ?User $user = null): array
+    public function analyzeImage(UploadedFile $image, ?User $user = null, ?string $visitorId = null): array
     {
         $imageHash = hash_file('sha256', $image->getRealPath());
-        $imagePath = $image->store('scam-images', 'public');
-        $absolutePath = Storage::disk('public')->path($imagePath);
+        $cacheKey = $this->cacheKey('image', $imageHash);
+        $analysis = Cache::get($cacheKey);
+        $cacheHit = $analysis !== null;
 
-        return $this->analyzeWithCache(
-            'image',
-            $imageHash,
-            ['image_path' => $imagePath],
-            function () use ($absolutePath) {
-                $ocrText = $this->ocrService->extractText($absolutePath);
+        if (! $cacheHit) {
+            $imagePath = $image->store('scam-images', 'public');
+            $absolutePath = Storage::disk('public')->path($imagePath);
+            $ocrText = $this->ocrService->extractText($absolutePath);
 
-                return $this->buildAnalysis('image', $ocrText, $this->ruleHelper->detectTextRules($ocrText)) + [
-                    'ocr_text' => $ocrText,
-                ];
-            },
-            $user
-        );
+            $analysis = $this->buildAnalysis('image', $ocrText, $this->ruleHelper->detectTextRules($ocrText)) + [
+                'ocr_text' => $ocrText,
+                'image_path' => $imagePath,
+            ];
+
+            Cache::put($cacheKey, $analysis, self::CACHE_TTL_SECONDS);
+        }
+
+        $scan = ScamScan::create($analysis + [
+            'user_id' => $user?->id,
+            'visitor_id' => $visitorId,
+            'input_type' => 'image',
+        ]);
+
+        return [
+            'scan' => $scan,
+            'cache_hit' => $cacheHit,
+        ];
     }
 
     private function analyzeWithCache(
@@ -70,7 +83,8 @@ class FraudService
         string $cacheSource,
         array $payload,
         Closure $analysisBuilder,
-        ?User $user
+        ?User $user,
+        ?string $visitorId = null
     ): array {
         $cacheKey = $this->cacheKey($inputType, $cacheSource);
         $analysis = Cache::get($cacheKey);
@@ -83,6 +97,7 @@ class FraudService
 
         $scan = ScamScan::create($payload + $analysis + [
             'user_id' => $user?->id,
+            'visitor_id' => $visitorId,
             'input_type' => $inputType,
         ]);
 

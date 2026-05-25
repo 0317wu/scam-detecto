@@ -13,6 +13,10 @@ class ScamCase extends Model
         'title',
         'description',
         'scam_type',
+        'threat_level',
+        'keywords',
+        'method',
+        'rules',
         'source_url',
         'is_active',
     ];
@@ -21,6 +25,8 @@ class ScamCase extends Model
     {
         return [
             'is_active' => 'boolean',
+            'keywords' => 'array',
+            'rules' => 'array',
         ];
     }
 }
