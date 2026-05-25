@@ -3,6 +3,8 @@
     <div class="dashboard-grid">
       <!-- 左側主要核心舱 (佔比 2/3) -->
       <section class="main-console-section">
+        <ApiWarningBanner v-if="hasApiKey !== null && !hasApiKey" />
+        
         <div v-if="scanError" class="scan-error-panel text-mono text-glow-danger">
           [SCAN_ERROR]: {{ scanError }}
         </div>
@@ -109,6 +111,7 @@ import CyberLayout from '@/Layouts/CyberLayout.vue';
 import ScannerInput from '@/Components/ScannerInput.vue';
 import ScanningLoader from '@/Components/ScanningLoader.vue';
 import ResultCard from '@/Components/ResultCard.vue';
+import ApiWarningBanner from '@/Components/ApiWarningBanner.vue';
 
 // 狀態管理
 const scanState = ref('idle'); // idle | scanning | completed
@@ -125,6 +128,9 @@ const page = usePage();
 const tickerOffset = ref(0);
 const activeAlerts = ref([]);
 const isAlertLoading = ref(true);
+
+// API Key 狀態
+const hasApiKey = ref(true); // 預設為 true，避免載入時閃爍
 
 const coreStatusText = computed(() => {
   if (aiCoreStatus.value === 'safe') return 'SECURE (100%)';
@@ -160,6 +166,13 @@ const getVisitorId = () => {
 
 // 啟動掃描辨識
 const handleStartScan = (payload) => {
+  if (hasApiKey.value === false) {
+    scanError.value = '系統尚未設定 OpenAI API Key，AI 掃描功能無法使用。';
+    scanState.value = 'idle';
+    aiCoreStatus.value = 'danger';
+    return;
+  }
+
   scanState.value = 'scanning';
   ocrText.value = '';
   analysisResult.value = null;
@@ -292,6 +305,15 @@ const loadUserStats = () => {
 };
 
 onMounted(() => {
+  // 取得 API 狀態
+  axios.get('/api/scam/config')
+    .then(response => {
+      hasApiKey.value = response.data?.has_ai_key ?? true;
+    })
+    .catch(err => {
+      console.error('無法取得 API Key 狀態', err);
+    });
+
   loadUserStats();
 
   // 4. 對接後端案例庫 API
