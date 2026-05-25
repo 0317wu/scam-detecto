@@ -27,10 +27,12 @@ Route::prefix('scam')->group(function () {
 
     Route::get('/cases', [ScamDashboardController::class, 'cases']);
 
-    // 歷史與統計開放給訪客（於控制器內部判斷登入狀態或訪客 ID）
-    Route::get('/history', [ScamHistoryController::class, 'index']);
-    Route::get('/history/{scan}', [ScamHistoryController::class, 'show']);
-    Route::get('/stats', [ScamDashboardController::class, 'stats']);
+    // 歷史與統計開放給訪客（於控制器內部判斷登入狀態或訪客 ID），加上 throttle 防止暴力請求
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::get('/history', [ScamHistoryController::class, 'index']);
+        Route::get('/history/{scan}', [ScamHistoryController::class, 'show']);
+        Route::get('/stats', [ScamDashboardController::class, 'stats']);
+    });
 
     // 管理員案例庫維護 API（需登入且具備管理員權限）
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
