@@ -76,7 +76,17 @@ class ScamAnalysisController extends Controller
 
     private function checkApiKey(): ?JsonResponse
     {
-        if (empty(config('services.openai.api_key'))) {
+        if (! (bool) config('ai.enabled')) {
+            return null;
+        }
+
+        $provider = config('ai.provider');
+        $hasApiKey = match ($provider) {
+            'gemini' => filled(config('ai.gemini.api_key')),
+            default => filled(config('ai.openai.api_key')),
+        };
+
+        if (! $hasApiKey) {
             return response()->error('api_key_missing', 'API Key not configured', 422);
         }
 

@@ -301,12 +301,32 @@ class ScamAnalysisApiTest extends TestCase
             ->assertJsonStructure(['errors' => ['url']]);
     }
 
-    public function test_scan_fails_without_api_key()
+    public function test_scan_fails_without_api_key_when_ai_is_enabled()
     {
-        config(['services.openai.api_key' => null]);
+        Config::set('ai.enabled', true);
+        Config::set('ai.provider', 'openai');
+        Config::set('ai.openai.api_key', null);
+
         $response = $this->postJson('/api/scam/analyze-text', ['content' => 'test']);
+
         $response->assertStatus(422)
             ->assertJsonFragment(['message' => 'api_key_missing']);
+    }
+
+    public function test_scan_allows_gemini_api_key_when_ai_is_enabled()
+    {
+        Config::set('ai.enabled', true);
+        Config::set('ai.provider', 'gemini');
+        Config::set('ai.gemini.api_key', 'test-gemini-key');
+
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response(['error' => 'server error'], 500),
+        ]);
+
+        $response = $this->postJson('/api/scam/analyze-text', ['content' => 'test']);
+
+        $response->assertOk()
+            ->assertJsonPath('message', 'analysis_completed');
     }
 
     private function mockOcrText(string $text): void
