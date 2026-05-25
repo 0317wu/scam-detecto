@@ -78,6 +78,27 @@ POST /api/scam/analyze-text
 
 以上端點皆可正常回應。
 
+8. 已完成主要頁面 HTTP smoke test：
+
+```text
+GET /           -> 200
+GET /history    -> 200
+GET /knowledge  -> 200
+```
+
+9. 已完成管理頁權限 smoke test：
+
+```text
+GET /cases-manager -> 302 redirect to login
+GET /scans-manager -> 302 redirect to login
+```
+
+10. 已完成統計 API smoke test：
+
+```text
+GET /api/scam/stats -> stats_retrieved
+```
+
 ## 本次後端修正
 
 本次整合驗收發現 `ScamAnalysisController` 原本只檢查 OpenAI API key。
@@ -123,7 +144,7 @@ OCR_LANGUAGE=chi_tra+eng
 
 ## 下一步
 
-下一步是啟動整合版網站，進行人工流程測試：
+下一步是啟動整合版網站，進行瀏覽器人工操作測試：
 
 ```bash
 cd scam-detector
@@ -137,7 +158,7 @@ npm.cmd run dev
 http://127.0.0.1:8000
 ```
 
-需要人工確認的畫面與流程：
+已完成 HTTP 層 smoke test，接下來需要用瀏覽器人工確認的畫面與流程：
 
 1. 首頁 Dashboard 是否正常顯示。
 2. 文字分析是否能顯示結果卡。
