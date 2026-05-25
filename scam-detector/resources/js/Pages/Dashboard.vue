@@ -3,7 +3,7 @@
     <div class="dashboard-grid">
       <!-- 左側主要核心舱 (佔比 2/3) -->
       <section class="main-console-section">
-        <ApiWarningBanner v-if="hasApiKey !== null && !hasApiKey" />
+        <ApiWarningBanner v-if="hasApiKey !== null && !hasApiKey" :provider="aiProvider" />
         
         <div v-if="scanError" class="scan-error-panel text-mono text-glow-danger">
           [SCAN_ERROR]: {{ scanError }}
@@ -131,6 +131,7 @@ const isAlertLoading = ref(true);
 
 // API Key 狀態
 const hasApiKey = ref(true); // 預設為 true，避免載入時閃爍
+const aiProvider = ref('AI');
 
 const coreStatusText = computed(() => {
   if (aiCoreStatus.value === 'safe') return 'SECURE (100%)';
@@ -167,7 +168,7 @@ const getVisitorId = () => {
 // 啟動掃描辨識
 const handleStartScan = (payload) => {
   if (hasApiKey.value === false) {
-    scanError.value = '系統尚未設定 OpenAI API Key，AI 掃描功能無法使用。';
+    scanError.value = `系統尚未設定 ${aiProvider.value} API Key，AI 掃描功能無法使用。`;
     scanState.value = 'idle';
     aiCoreStatus.value = 'danger';
     return;
@@ -309,6 +310,7 @@ onMounted(() => {
   axios.get('/api/scam/config')
     .then(response => {
       hasApiKey.value = response.data?.has_ai_key ?? true;
+      aiProvider.value = response.data?.provider ?? 'AI';
     })
     .catch(err => {
       console.error('無法取得 API Key 狀態', err);

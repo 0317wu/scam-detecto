@@ -22,7 +22,7 @@
 *   **樣式與打包**：Tailwind CSS v3 + Vite 6+
 *   **資料庫**：SQLite (預設 `database.sqlite`)
 *   **OCR 引擎**：Tesseract OCR
-*   **AI 整合**：Google Gemini 2.5 Flash / OpenAI GPT-4o-mini
+*   **AI 整合**：Google Gemini 3.5 Flash / OpenAI GPT-4o-mini
 
 ---
 
@@ -96,7 +96,7 @@ php artisan migrate --seed
     AI_ANALYSIS_ENABLED=true
     AI_PROVIDER=gemini
     GEMINI_API_KEY=您的_Gemini_API_Key
-    GEMINI_MODEL=gemini-2.5-flash
+    GEMINI_MODEL=gemini-3.5-flash
     ```
 3.  清除 Laravel 的配置快取：
     ```bash
