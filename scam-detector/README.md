@@ -29,14 +29,14 @@
 ## 📂 專案檔案結構導覽 (File Structure)
 
 *   **前端（Vue 3 / Inertia / CSS）**：
-    *   頁面元件 ➜ [resources/js/Pages/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Pages)
-    *   組件元件 ➜ [resources/js/Components/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Components)
-    *   全站版面 ➜ [resources/js/Layouts/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Layouts)
-    *   全站樣式 ➜ [resources/css/app.css](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/css/app.css)
+    *   頁面元件 ➜ [resources/js/Pages/](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Pages)
+    *   組件元件 ➜ [resources/js/Components/](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Components)
+    *   全站版面 ➜ [resources/js/Layouts/](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Layouts)
+    *   全站樣式 ➜ [resources/css/app.css](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/css/app.css)
 *   **後端（Laravel / PHP）**：
-    *   分析服務層 ➜ [app/Services/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/app/Services)
-    *   API / 認證控制器 ➜ [app/Http/Controllers/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/app/Http/Controllers)
-    *   路由定義 ➜ [routes/web.php](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/routes/web.php) 與 [routes/api.php](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/routes/api.php)
+    *   分析服務層 ➜ [app/Services/](file:///D:/User/Desktop/scam_detecto/scam-detector/app/Services)
+    *   API / 認證控制器 ➜ [app/Http/Controllers/](file:///D:/User/Desktop/scam_detecto/scam-detector/app/Http/Controllers)
+    *   路由定義 ➜ [routes/web.php](file:///D:/User/Desktop/scam_detecto/scam-detector/routes/web.php) 與 [routes/api.php](file:///D:/User/Desktop/scam_detecto/scam-detector/routes/api.php)
 
 ---
 

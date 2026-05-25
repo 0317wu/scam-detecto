@@ -28,25 +28,25 @@
 
 ## 📂 專案檔案結構導覽 (File Structure)
 
-專案已完全整合，主要程式碼均位於 [scam-detector-backend/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend) 目錄中：
+專案已完全整合，主要程式碼均位於 [scam-detector/](file:///D:/User/Desktop/scam_detecto/scam-detector) 目錄中：
 
 ### 1. 前端（Vue 3 / Inertia / CSS）
-*   **系統頁面**：位於 [resources/js/Pages/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Pages) 底下：
-    *   [Dashboard.vue](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Pages/Dashboard.vue) —— AI 辨識主控台
-    *   [History.vue](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Pages/History.vue) —— 安全防衛歷史日誌與統計圖表
-    *   [Knowledge.vue](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Pages/Knowledge.vue) —— 防詐防衛檔案館
-    *   [Auth/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Pages/Auth) —— 登入與註冊頁面
-*   **互動組件**：[Components/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/js/Components) (包含輸入框、雷達掃描動畫、結果卡片、圖表組件等)
-*   **樣式表**：[app.css](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/resources/css/app.css) (包含 Cyberpunk HSL 變數與發光效果)
+*   **系統頁面**：位於 [resources/js/Pages/](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Pages) 底下：
+    *   [Dashboard.vue](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Pages/Dashboard.vue) —— AI 辨識主控台
+    *   [History.vue](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Pages/History.vue) —— 安全防衛歷史日誌與統計圖表
+    *   [Knowledge.vue](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Pages/Knowledge.vue) —— 防詐防衛檔案館
+    *   [Auth/](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Pages/Auth) —— 登入與註冊頁面
+*   **互動組件**：[Components/](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Components) (包含輸入框、雷達掃描動畫、結果卡片、圖表組件等)
+*   **樣式表**：[app.css](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/css/app.css) (包含 Cyberpunk HSL 變數與發光效果)
 
 ### 2. 後端（Laravel / PHP）
-*   **分析服務層 (Services)**：位於 [app/Services/](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/app/Services)：
-    *   [FraudService.php](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/app/Services/FraudService.php) —— 核心分析分流與規則引擎
-    *   [OcrService.php](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/app/Services/OcrService.php) —— Tesseract OCR 串接
-    *   [AiFraudService.php](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/app/Services/AiFraudService.php) —— Gemini/OpenAI API 調用與 JSON 格式化
+*   **分析服務層 (Services)**：位於 [app/Services/](file:///D:/User/Desktop/scam_detecto/scam-detector/app/Services)：
+    *   [FraudService.php](file:///D:/User/Desktop/scam_detecto/scam-detector/app/Services/FraudService.php) —— 核心分析分流與規則引擎
+    *   [OcrService.php](file:///D:/User/Desktop/scam_detecto/scam-detector/app/Services/OcrService.php) —— Tesseract OCR 串接
+    *   [AiFraudService.php](file:///D:/User/Desktop/scam_detecto/scam-detector/app/Services/AiFraudService.php) —— Gemini/OpenAI API 調用與 JSON 格式化
 *   **路由定義**：
-    *   [web.php](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/routes/web.php) —— 處理首頁、歷史、知識庫等 Inertia 渲染路由及 Breeze 網頁端認證
-    *   [api.php](file:///D:/User/Desktop/scam_detecto/scam-detector-backend/routes/api.php) —— 處理前端 Axios 發送的非同步分析、統計與案例請求
+    *   [web.php](file:///D:/User/Desktop/scam_detecto/scam-detector/routes/web.php) —— 處理首頁、歷史、知識庫等 Inertia 渲染路由及 Breeze 網頁端認證
+    *   [api.php](file:///D:/User/Desktop/scam_detecto/scam-detector/routes/api.php) —— 處理前端 Axios 發送的非同步分析、統計與案例請求
 
 ---
 
@@ -57,7 +57,7 @@
 ### 1. 複製並安裝依賴
 進入後端專案目錄並安裝 PHP 與 Node 套件：
 ```bash
-cd scam-detector-backend
+cd scam-detector
 composer install
 npm install
 ```
