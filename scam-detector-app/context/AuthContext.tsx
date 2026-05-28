@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { getToken, setToken, removeToken, getUserInfo, setUserInfo, removeUserInfo } from '../services/token';
 import api from '../services/api';
 
 // 定義 User 資料結構
@@ -33,8 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
-        const storedToken = await SecureStore.getItemAsync('user_token');
-        const storedUserInfo = await SecureStore.getItemAsync('user_info');
+        const storedToken = await getToken();
+        const storedUserInfo = await getUserInfo();
 
         if (storedToken && storedUserInfo) {
           setToken(storedToken);
@@ -46,13 +46,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (response.data && response.data.success) {
               const freshUser = response.data.data;
               setUser(freshUser);
-              await SecureStore.setItemAsync('user_info', JSON.stringify(freshUser));
+              await setUserInfo(JSON.stringify(freshUser));
             }
           } catch (error) {
             // 如果驗證失敗（例如 Token 過期），自動清除本地狀態並登出
             console.warn('Token 驗證失敗，自動登出', error);
-            await SecureStore.deleteItemAsync('user_token');
-            await SecureStore.deleteItemAsync('user_info');
+            await removeToken();
+            await removeUserInfo();
             setToken(null);
             setUser(null);
           }
@@ -76,8 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data && response.data.success) {
         const { token: userToken, user: userInfo } = response.data.data;
         
-        await SecureStore.setItemAsync('user_token', userToken);
-        await SecureStore.setItemAsync('user_info', JSON.stringify(userInfo));
+        await setToken(userToken);
+        await setUserInfo(JSON.stringify(userInfo));
         
         setToken(userToken);
         setUser(userInfo);
@@ -111,8 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data && response.data.success) {
         const { token: userToken, user: userInfo } = response.data.data;
 
-        await SecureStore.setItemAsync('user_token', userToken);
-        await SecureStore.setItemAsync('user_info', JSON.stringify(userInfo));
+        await setToken(userToken);
+        await setUserInfo(JSON.stringify(userInfo));
 
         setToken(userToken);
         setUser(userInfo);
@@ -142,8 +142,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('後端登出失敗或 Token 已失效', error);
     } finally {
       // 無論後端是否成功登出，都必須清除本地 Token 與資訊
-      await SecureStore.deleteItemAsync('user_token');
-      await SecureStore.deleteItemAsync('user_info');
+      await removeToken();
+      await removeUserInfo();
       setToken(null);
       setUser(null);
       setIsLoading(false);
