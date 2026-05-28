@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
@@ -31,7 +32,8 @@ class AiFraudService
                 'gemini' => $this->callGemini($inputType, $content, $ruleAnalysis),
                 default => $this->callOpenAi($inputType, $content, $ruleAnalysis),
             };
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            Log::warning('AI Request Failed', ['msg' => $e->getMessage()]);
             return null;
         }
     }
