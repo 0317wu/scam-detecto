@@ -15,9 +15,13 @@ Route::middleware('throttle:6,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
-Route::get('/user', function (Request $request) {
-    return response()->success($request->user(), 'user_retrieved');
-})->middleware('auth:sanctum');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return response()->success($request->user(), 'user_retrieved');
+    });
+
+    Route::put('/user', [\App\Http\Controllers\Api\AuthController::class, 'updateProfile']);
+});
 
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth:sanctum');

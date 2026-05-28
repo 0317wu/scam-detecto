@@ -20,6 +20,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
+  updateProfile: (data: { name?: string; email?: string; password?: string; password_confirmation?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -173,8 +174,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 更新個人資料
+  const updateProfile = async (data: { name?: string; email?: string; password?: string; password_confirmation?: string }) => {
+    try {
+      setIsLoading(true);
+      const response = await api.put('/user', data);
+      const updatedUser = response.data.data;
+      setUser(updatedUser);
+      await setUserInfo(JSON.stringify(updatedUser));
+    } catch (e: any) {
+      console.error('更新資料失敗', e.response?.data || e.message);
+      throw e;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
