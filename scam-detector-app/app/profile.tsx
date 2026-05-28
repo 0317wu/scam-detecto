@@ -40,7 +40,11 @@ export default function ProfileScreen() {
 
   const handleUpdate = async () => {
     if (password && password !== passwordConfirmation) {
-      Alert.alert('錯誤', '兩次輸入的密碼不一致');
+      if (Platform.OS === 'web') {
+        window.alert('錯誤: 兩次輸入的密碼不一致');
+      } else {
+        Alert.alert('錯誤', '兩次輸入的密碼不一致');
+      }
       return;
     }
 
@@ -53,29 +57,43 @@ export default function ProfileScreen() {
       }
       
       await updateProfile(data);
-      Alert.alert('系統提示', '指揮官設定已更新');
+      if (Platform.OS === 'web') {
+        window.alert('系統提示: 指揮官設定已更新');
+      } else {
+        Alert.alert('系統提示', '指揮官設定已更新');
+      }
       setPassword('');
       setPasswordConfirmation('');
     } catch (error: any) {
       const msg = error.response?.data?.message || '更新失敗，請稍後再試';
-      Alert.alert('更新失敗', msg);
+      if (Platform.OS === 'web') {
+        window.alert('更新失敗: ' + msg);
+      } else {
+        Alert.alert('更新失敗', msg);
+      }
     } finally {
       setIsUpdating(false);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert('登出確認', '確定要登出防禦主控台嗎？', [
-      { text: '取消', style: 'cancel' },
-      { 
-        text: '確定登出', 
-        style: 'destructive', 
-        onPress: async () => {
-          await logout();
-          router.replace('/(auth)/login');
-        } 
-      },
-    ]);
+    if (Platform.OS === 'web') {
+      if (window.confirm('確定要登出防禦主控台嗎？')) {
+        logout().then(() => router.replace('/(auth)/login'));
+      }
+    } else {
+      Alert.alert('登出確認', '確定要登出防禦主控台嗎？', [
+        { text: '取消', style: 'cancel' },
+        { 
+          text: '確定登出', 
+          style: 'destructive', 
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          } 
+        },
+      ]);
+    }
   };
 
   return (

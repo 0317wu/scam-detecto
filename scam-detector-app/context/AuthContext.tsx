@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getToken, setToken, removeToken, getUserInfo, setUserInfo, removeUserInfo } from '../services/token';
+import { getToken, setToken as storeToken, removeToken, getUserInfo, setUserInfo, removeUserInfo } from '../services/token';
 import api from '../services/api';
 
 // 定義 User 資料結構
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data && response.data.success) {
         const { token: userToken, user: userInfo } = response.data.data;
         
-        await setToken(userToken);
+        await storeToken(userToken);
         await setUserInfo(JSON.stringify(userInfo));
         
         setToken(userToken);
@@ -135,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data && response.data.success) {
         const { token: userToken, user: userInfo } = response.data.data;
 
-        await setToken(userToken);
+        await storeToken(userToken);
         await setUserInfo(JSON.stringify(userInfo));
 
         setToken(userToken);
