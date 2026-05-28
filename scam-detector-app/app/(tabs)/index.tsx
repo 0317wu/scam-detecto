@@ -33,6 +33,7 @@ export default function DashboardScreen() {
   const [textInput, setTextInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] = useState<string>('image/jpeg');
 
   // 請求與結果狀態
   const [loading, setLoading] = useState(false);
@@ -66,6 +67,7 @@ export default function DashboardScreen() {
     setTextInput('');
     setUrlInput('');
     setImageUri(null);
+    setImageMimeType('image/jpeg');
     setResult(null);
     setError(false);
   };
@@ -189,6 +191,7 @@ export default function DashboardScreen() {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
+      setImageMimeType(result.assets[0].mimeType || 'image/jpeg');
       setResult(null);
       setError(false);
     }
@@ -210,6 +213,7 @@ export default function DashboardScreen() {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
+      setImageMimeType(result.assets[0].mimeType || 'image/jpeg');
       setResult(null);
       setError(false);
     }
@@ -234,14 +238,12 @@ export default function DashboardScreen() {
 
       const formData = new FormData();
       // 動態獲取檔名與類型
-      const uriParts = imageUri.split('.');
-      const fileType = uriParts[uriParts.length - 1];
-      const mimeType = fileType === 'png' ? 'image/png' : (fileType === 'webp' ? 'image/webp' : 'image/jpeg');
+      const fileType = imageMimeType.split('/')[1] || 'jpg';
 
       formData.append('image', {
         uri: imageUri,
         name: `upload.${fileType}`,
-        type: mimeType,
+        type: imageMimeType,
       } as any);
 
       if (!user && visitorId) {

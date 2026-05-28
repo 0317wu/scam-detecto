@@ -50,23 +50,25 @@ class FraudService
     {
         $imageHash = hash_file('sha256', $image->getRealPath());
         $cacheKey = $this->cacheKey('image', $imageHash);
+        
+        $imagePath = $image->store('scam-images', 'public');
+        
         $analysis = Cache::get($cacheKey);
         $cacheHit = $analysis !== null;
 
         if (! $cacheHit) {
-            $imagePath = $image->store('scam-images', 'public');
             $absolutePath = Storage::disk('public')->path($imagePath);
             $ocrText = $this->ocrService->extractText($absolutePath);
 
             $analysis = $this->buildAnalysis('image', $ocrText, $this->ruleHelper->detectTextRules($ocrText)) + [
                 'ocr_text' => $ocrText,
-                'image_path' => $imagePath,
             ];
 
             Cache::put($cacheKey, $analysis, self::CACHE_TTL_SECONDS);
         }
 
         $scan = ScamScan::create($analysis + [
+            'image_path' => $imagePath,
             'user_id' => $user?->id,
             'visitor_id' => $visitorId,
             'input_type' => 'image',
