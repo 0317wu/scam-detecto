@@ -9,6 +9,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +34,7 @@ export default function StatsScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [error, setError] = useState<boolean>(false);
+  const router = useRouter();
 
   const fetchStats = async () => {
     setLoading(true);
@@ -104,8 +106,16 @@ export default function StatsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.title}>數據中樞</Text>
-        <Text style={styles.subtitle}>COMMAND CENTER - ANALYTICS</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>數據中樞</Text>
+          <Text style={styles.subtitle}>COMMAND CENTER - ANALYTICS</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.profileButton}
+          onPress={() => router.push('/profile')}
+        >
+          <Ionicons name="person-circle-outline" size={32} color={user ? "#00ff66" : "#00ccff"} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -195,11 +205,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0b0d',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'android' ? 15 : 10,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  profileButton: {
+    padding: 5,
   },
   title: {
     fontSize: 24,

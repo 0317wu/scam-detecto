@@ -10,7 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import ResultCard from '../../components/ResultCard';
 import { useAuth } from '../../context/AuthContext';
@@ -35,6 +36,7 @@ interface HistoryItem {
 
 export default function HistoryScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [visitorId, setVisitorId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
@@ -216,14 +218,16 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* 頂部 Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>防禦日誌</Text>
-        <Text style={styles.subtitle}>DEFENSE LOGS - THREAT HISTORY</Text>
-        <View style={styles.badgeContainer}>
-          <View style={[styles.statusIndicator, { backgroundColor: user ? '#00ff66' : '#00ccff' }]} />
-          <Text style={styles.badgeText}>
-            {user ? `安全存檔: ${user.name}` : '訪客加密日誌模式'}
-          </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>防禦日誌</Text>
+          <Text style={styles.subtitle}>DEFENSE LOGS - THREAT HISTORY</Text>
         </View>
+        <TouchableOpacity 
+          style={styles.profileButton}
+          onPress={() => router.push('/profile')}
+        >
+          <Ionicons name="person-circle-outline" size={32} color={user ? "#00ff66" : "#00ccff"} />
+        </TouchableOpacity>
       </View>
 
       {/* 內容區 */}
@@ -270,11 +274,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0b0d',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'android' ? 15 : 10,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  profileButton: {
+    padding: 5,
   },
   title: {
     fontSize: 24,

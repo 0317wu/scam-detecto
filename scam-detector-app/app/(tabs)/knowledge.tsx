@@ -11,7 +11,10 @@ import {
   Linking,
   TextInput,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 // 定義案例型別
 interface ScamCaseItem {
@@ -34,6 +37,8 @@ export default function KnowledgeScreen() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('全部');
   const [error, setError] = useState<boolean>(false);
+  const router = useRouter();
+  const { user } = useAuth();
 
   // 取得防詐案例資料
   const fetchCases = async () => {
@@ -187,8 +192,16 @@ export default function KnowledgeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* 頂部 Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>防詐威脅庫</Text>
-        <Text style={styles.subtitle}>THREAT INTELLIGENCE - SCAM CASES</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>防詐威脅庫</Text>
+          <Text style={styles.subtitle}>THREAT INTELLIGENCE - SCAM CASES</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.profileButton}
+          onPress={() => router.push('/profile')}
+        >
+          <Ionicons name="person-circle-outline" size={32} color={user ? "#00ff66" : "#00ccff"} />
+        </TouchableOpacity>
       </View>
 
       {/* 搜尋與篩選區域 */}
@@ -276,9 +289,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0b0d',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'android' ? 15 : 10,
     paddingBottom: 10,
+  },
+  profileButton: {
+    padding: 5,
   },
   title: {
     fontSize: 24,

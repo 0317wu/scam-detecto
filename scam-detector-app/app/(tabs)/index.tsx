@@ -13,6 +13,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
@@ -283,27 +284,15 @@ export default function DashboardScreen() {
           
           {/* 控制台頂部 */}
           <View style={styles.header}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.title}>AI 防禦主控台</Text>
               <Text style={styles.subtitle}>DEFENSE CONSOLE - SECURE SCANNER</Text>
             </View>
             <TouchableOpacity 
-              style={styles.badgeContainer}
-              onPress={() => {
-                if (user) {
-                  Alert.alert('登出', '確定要登出防禦主控台嗎？', [
-                    { text: '取消', style: 'cancel' },
-                    { text: '確定登出', style: 'destructive', onPress: logout },
-                  ]);
-                } else {
-                  router.push('/(auth)/login');
-                }
-              }}
+              style={styles.profileButton}
+              onPress={() => router.push('/profile')}
             >
-              <View style={[styles.statusIndicator, { backgroundColor: user ? '#00ff66' : '#00ccff' }]} />
-              <Text style={styles.badgeText}>
-                {user ? `使用者: ${user.name}` : '訪客防護模式 (點擊登入)'}
-              </Text>
+              <Ionicons name="person-circle-outline" size={32} color={user ? "#00ff66" : "#00ccff"} />
             </TouchableOpacity>
           </View>
 
@@ -483,10 +472,15 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-    marginTop: Platform.OS === 'android' ? 10 : 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 15 : 10,
+    paddingBottom: 20,
+  },
+  profileButton: {
+    padding: 5,
   },
   title: {
     fontSize: 24,
