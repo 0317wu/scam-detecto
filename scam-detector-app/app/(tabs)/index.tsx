@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as Crypto from 'expo-crypto';
+import { useRouter } from 'expo-router';
 import api from '../../services/api';
 import ResultCard from '../../components/ResultCard';
 import ScanningLoader from '../../components/ScanningLoader';
@@ -22,7 +24,8 @@ import { useAuth } from '../../context/AuthContext';
 type TabType = 'text' | 'url' | 'image';
 
 export default function DashboardScreen() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('text');
   const [visitorId, setVisitorId] = useState<string>('');
   
@@ -47,12 +50,7 @@ export default function DashboardScreen() {
       try {
         let storedId = await AsyncStorage.getItem('visitor_id');
         if (!storedId) {
-          // 生成隨機 UUID 替代方案
-          storedId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-            const r = (Math.random() * 16) | 0;
-            const v = c === 'x' ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-          });
+          storedId = Crypto.randomUUID();
           await AsyncStorage.setItem('visitor_id', storedId);
         }
         setVisitorId(storedId);
@@ -235,10 +233,15 @@ export default function DashboardScreen() {
       };
 
       const formData = new FormData();
+      // 動態獲取檔名與類型
+      const uriParts = imageUri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+      const mimeType = fileType === 'png' ? 'image/png' : (fileType === 'webp' ? 'image/webp' : 'image/jpeg');
+
       formData.append('image', {
         uri: imageUri,
-        name: 'upload.jpg',
-        type: 'image/jpeg',
+        name: `upload.${fileType}`,
+        type: mimeType,
       } as any);
 
       if (!user && visitorId) {
@@ -282,12 +285,24 @@ export default function DashboardScreen() {
               <Text style={styles.title}>AI 防禦主控台</Text>
               <Text style={styles.subtitle}>DEFENSE CONSOLE - SECURE SCANNER</Text>
             </View>
-            <View style={styles.badgeContainer}>
+            <TouchableOpacity 
+              style={styles.badgeContainer}
+              onPress={() => {
+                if (user) {
+                  Alert.alert('登出', '確定要登出防禦主控台嗎？', [
+                    { text: '取消', style: 'cancel' },
+                    { text: '確定登出', style: 'destructive', onPress: logout },
+                  ]);
+                } else {
+                  router.push('/(auth)/login');
+                }
+              }}
+            >
               <View style={[styles.statusIndicator, { backgroundColor: user ? '#00ff66' : '#00ccff' }]} />
               <Text style={styles.badgeText}>
-                {user ? `使用者: ${user.name}` : '訪客防護模式'}
+                {user ? `使用者: ${user.name}` : '訪客防護模式 (點擊登入)'}
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* 標籤頁切換區 */}

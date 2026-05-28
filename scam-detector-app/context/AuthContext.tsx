@@ -48,13 +48,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(freshUser);
               await setUserInfo(JSON.stringify(freshUser));
             }
-          } catch (error) {
-            // 如果驗證失敗（例如 Token 過期），自動清除本地狀態並登出
-            console.warn('Token 驗證失敗，自動登出', error);
-            await removeToken();
-            await removeUserInfo();
-            setToken(null);
-            setUser(null);
+          } catch (error: any) {
+            // 如果是 401 Unauthorized 才強制登出，避免因為網路斷線而被登出
+            if (error.response && error.response.status === 401) {
+              console.warn('Token 驗證失敗，自動登出', error);
+              await removeToken();
+              await removeUserInfo();
+              setToken(null);
+              setUser(null);
+            } else {
+              console.warn('同步使用者資訊失敗 (可能為網路問題)', error);
+            }
           }
         }
       } catch (e) {

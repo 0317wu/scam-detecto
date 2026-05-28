@@ -48,12 +48,7 @@ function NavigationGuard() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !token) {
-      const timer = setTimeout(() => {
-        router.replace('/(auth)/login');
-      }, 100);
-      return () => clearTimeout(timer);
-    }
+    // 移除強制登入的跳轉邏輯，開放 (tabs) 允許訪客模式存取
   }, [token, isLoading]);
 
   if (isLoading) {
