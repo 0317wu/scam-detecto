@@ -1,10 +1,11 @@
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -42,15 +43,41 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
+function NavigationGuard() {
+  const { token, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !token) {
+      const timer = setTimeout(() => {
+        router.replace('/(auth)/login');
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [token, isLoading]);
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
+      <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    </Stack>
+  );
+}
+
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <NavigationGuard />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
