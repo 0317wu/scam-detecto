@@ -4,7 +4,7 @@
 
 ---
 
-## 🌌 系統特點 (Features)
+## 系統特點 (Features)
 
 *   **未來科幻視覺風格**：全站採用發光字體、玻璃擬態（Glassmorphism）、雷達掃描與代碼瀑布流動畫，呈現高質感的 Cyberpunk 介面。
 *   **多模態辨識主控艙**：支援文字貼上、網址檢測，以及對話截圖拖曳上傳與預覽分析。
@@ -15,18 +15,18 @@
 
 ---
 
-## 🛠️ 專案技術棧 (Tech Stack)
+## 專案技術棧 (Tech Stack)
 
 *   **後端框架**：Laravel 12.x (PHP 8.2+)
 *   **前端框架**：Vue 3.x (Composition API) + Inertia.js 2.x
 *   **樣式與打包**：Tailwind CSS v3 + Vite 6+
 *   **資料庫**：SQLite (預設 `database.sqlite`)
 *   **OCR 引擎**：Tesseract OCR
-*   **AI 整合**：Google Gemini 3.5 Flash / OpenAI GPT-5.5 Instant
+*   **AI 整合**：Google Gemini (`gemini-2.5-flash`) / OpenAI (`gpt-4.1-mini`)
 
 ---
 
-## 📂 專案檔案結構導覽 (File Structure)
+## 專案檔案結構導覽 (File Structure)
 
 *   **前端（Vue 3 / Inertia / CSS）**：
     *   頁面元件 ➜ [resources/js/Pages/](file:///D:/User/Desktop/scam_detecto/scam-detector/resources/js/Pages)
@@ -40,7 +40,7 @@
 
 ---
 
-## 🚀 本地安裝與快速啟動 (Quick Start)
+## 本地安裝與快速啟動 (Quick Start)
 
 請確保您的電腦已安裝 PHP 8.2+、Composer 以及 Node.js。
 
@@ -72,9 +72,9 @@ php artisan migrate --seed
 
 ### 4. 啟動開發服務
 為確保服務在 Windows 環境下不中斷且 Log 輸出清晰，建議分開兩個獨立終端機（CMD）執行：
-*   **終端機 A：啟動 Laravel 後端伺服器 (使用 8000 連接埠)**
+*   **終端機 A：啟動 Laravel 後端伺服器**
     ```bash
-    php artisan serve
+    php artisan serve --host=127.0.0.1 --port=8002
     ```
 *   **終端機 B：啟動 Vite 前端熱重載**
     ```bash
@@ -83,11 +83,15 @@ php artisan migrate --seed
 
 ### 5. 瀏覽器存取
 造訪主入口網址即可體驗完整系統：
-👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+如果測 Laravel Web 頁面，造訪：
+
+**[http://127.0.0.1:8002](http://127.0.0.1:8002)**
+
+如果測 Expo App 網頁版，請另外啟動 `scam-detector-app`，並開啟 `http://localhost:8081`。
 
 ---
 
-## 🧠 OCR 與 AI 設定說明
+## OCR 與 AI 設定說明
 
 ### 1. Gemini AI 設定
 1.  前往 [Google AI Studio](https://aistudio.google.com/app/apikey) 建立 API 金鑰。
@@ -96,7 +100,7 @@ php artisan migrate --seed
     AI_ANALYSIS_ENABLED=true
     AI_PROVIDER=gemini
     GEMINI_API_KEY=您的_Gemini_API_Key
-    GEMINI_MODEL=gemini-3.5-flash
+    GEMINI_MODEL=gemini-2.5-flash
     ```
 3.  清除 Laravel 的配置快取：
     ```bash
@@ -114,9 +118,9 @@ php artisan migrate --seed
 
 ---
 
-## 🧪 運行自動化測試
+## 運行自動化測試
 
 ```bash
 php artisan test
 ```
-預期結果：**31 passed (179 assertions)**。
+目前驗收結果：**48 passed (461 assertions)**。

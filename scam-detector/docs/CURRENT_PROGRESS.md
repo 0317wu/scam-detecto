@@ -1,274 +1,209 @@
 # 目前進度總覽
 
-更新日期：2026-05-25
+更新日期：2026-05-30
 
 ## 目前狀態
 
-前端負責人已將整合版上傳到 GitHub 分支：
+專案已整理成同一個 GitHub repository：
 
 ```text
-feature/integrate-frontend
+https://github.com/0317wu/scam-detecto
 ```
 
-目前本機已切出整合驗收分支：
+目前 `main` 分支已包含：
 
 ```text
-codex/integration-review
+scam-detector/      Laravel 12 後端 API + Inertia/Vue Web 版
+scam-detector-app/  Expo / React Native App 版與 Web 預覽版
 ```
 
-這個分支已將原本後端專案 `scam-detector-backend` 改為整合專案資料夾：
+本機舊資料夾 `scam-detector-backend/` 仍是未追蹤資料夾，並未上傳到 GitHub。正式接手請使用 `scam-detector/` 與 `scam-detector-app/`。
+
+## 已完成的大進度
+
+1. Laravel 後端 API 已完成
 
 ```text
-scam-detector
-```
-
-整合後的專案型態是：
-
-```text
-Laravel 12 + Inertia.js + Vue 3 + Sanctum + Tesseract OCR + Gemini/OpenAI AI
-```
-
-2026-05-30 追加：
-
-前端新增 app 版介面分支：
-
-```text
-feature/react-native-app
-```
-
-目前已切出本機除錯分支：
-
-```text
-codex/app-integration-debug
-```
-
-新增 app 專案：
-
-```text
-scam-detector-app/
-```
-
-專案型態：
-
-```text
-Expo + React Native + Expo Router + Axios
-```
-
-## 已完成驗收
-
-1. 已安裝 PHP 依賴：
-
-```bash
-composer install
-```
-
-2. 已安裝前端依賴：
-
-```bash
-npm install
-```
-
-3. 已建立本機測試環境：
-
-```text
-.env
-database/database.sqlite
-APP_KEY
-```
-
-4. 已完成資料庫 migration 與 seed：
-
-```bash
-php artisan migrate --seed
-```
-
-5. 已完成前端 production build：
-
-```bash
-npm.cmd run build
-```
-
-6. 已完成完整測試：
-
-```text
-48 passed (461 assertions)
-```
-
-7. 已完成實際 HTTP API 驗收：
-
-```text
-GET  /api/scam/config
-GET  /api/scam/cases
 POST /api/scam/analyze-text
-```
-
-以上端點皆可正常回應。
-
-8. 已完成主要頁面 HTTP smoke test：
-
-```text
-GET /           -> 200
-GET /history    -> 200
-GET /knowledge  -> 200
-```
-
-9. 已完成管理頁權限 smoke test：
-
-```text
-GET /cases-manager -> 302 redirect to login
-GET /scans-manager -> 302 redirect to login
-```
-
-10. 已完成統計 API smoke test：
-
-```text
-GET /api/scam/stats -> stats_retrieved
-```
-
-11. 已完成登入 token 串接流程測試：
-
-```text
-POST /api/register
-GET  /api/user
 POST /api/scam/analyze-url
+POST /api/scam/analyze-image
 GET  /api/scam/history
+GET  /api/scam/history/{id}
+GET  /api/scam/stats
+GET  /api/scam/cases
+GET  /api/scam/config
 ```
 
-測試結果：
+2. 資料庫已完成
 
 ```text
-註冊成功
-Bearer token 可用
-分析紀錄正確綁定 user_id
-history_total = 1
+scam analyses
+users
+sessions
+cache
+jobs
+personal access tokens
 ```
 
-12. 已完成 React Native app 版初步除錯：
+分析紀錄會保存輸入類型、文字或網址、圖片路徑、OCR 文字、風險分數、風險等級、詐騙類型、風險因子、建議與建立時間。
+
+3. Sanctum 驗證已完成
+
+系統支援兩種模式：
 
 ```text
-npm install 成功
-npm.cmd run test -- --runInBand 成功
-npx.cmd tsc --noEmit 成功
-npx.cmd expo export --platform web 成功
+未登入：使用 visitor_id 保存與讀取自己的掃描紀錄
+已登入：使用 Bearer token，掃描紀錄綁定 user_id
 ```
 
-13. 已完成 app 分支後端回歸修正：
+4. 真 OCR 已完成
 
-```text
-php artisan test -> 48 passed (461 assertions)
+後端可使用 Tesseract OCR：
+
+```env
+TESSERACT_PATH="C:/Program Files/Tesseract-OCR/tesseract.exe"
+OCR_LANGUAGE=chi_tra+eng
+OCR_TIMEOUT=30
 ```
 
-14. 已移除 app .env 版控：
+5. 真 AI 已完成
 
-```text
-scam-detector-app/.env 不再追蹤
-scam-detector-app/.env.example 保留
-```
-
-## 本次後端修正
-
-本次整合驗收發現 `ScamAnalysisController` 原本只檢查 OpenAI API key。
-
-這會造成一個問題：
-
-```text
-如果 AI_PROVIDER=gemini，但沒有 OPENAI_API_KEY，分析 API 仍可能被錯誤擋下。
-```
-
-目前已修正為：
-
-```text
-AI_ANALYSIS_ENABLED=false
-    -> 允許使用規則分析，不強制要求 AI key
-
-AI_ANALYSIS_ENABLED=true + AI_PROVIDER=openai
-    -> 檢查 OPENAI_API_KEY
-
-AI_ANALYSIS_ENABLED=true + AI_PROVIDER=gemini
-    -> 檢查 GEMINI_API_KEY
-```
-
-並新增測試確認 Gemini key 可以通過分析 API。
-
-## 本次新增修正：可選 Sanctum 驗證
-
-整合測試發現一個登入後歷史紀錄問題：
-
-```text
-前端登入後使用 Bearer token 呼叫分析 API，分析成功，但 history 查不到該紀錄。
-```
-
-原因是：
-
-```text
-/api/scam/analyze-*、/api/scam/history、/api/scam/stats 同時支援訪客與登入者，
-所以路由沒有掛 auth:sanctum。
-沒有 auth:sanctum 時，真實 Bearer token 不會自動解析成 request user。
-```
-
-目前已新增：
-
-```text
-app/Http/Middleware/OptionalSanctumAuth.php
-```
-
-效果：
-
-```text
-有 Bearer token -> 自動辨識登入使用者
-沒有 Bearer token -> 保持訪客 visitor_id 模式
-```
-
-已確認：
-
-```text
-登入者分析紀錄會寫入 user_id
-登入者 history 可查回自己的紀錄
-訪客仍可用 visitor_id 查自己的紀錄
-```
-
-## 目前注意事項
-
-1. 不建議直接把 `feature/integrate-frontend` 合併到 `main`，需要先完成最終人工操作測試。
-
-2. 前端 README 中有些 AI 型號名稱需要再確認，不應寫不存在或未實際使用的型號。
-
-3. 本機 `.env` 不會上傳 GitHub，前端與後端各自測試時都需要自行填入：
+後端支援 Gemini 與 OpenAI，目前建議用 Gemini：
 
 ```env
 AI_ANALYSIS_ENABLED=true
 AI_PROVIDER=gemini
 GEMINI_API_KEY=自己的金鑰
-TESSERACT_PATH="C:/Program Files/Tesseract-OCR/tesseract.exe"
-OCR_LANGUAGE=chi_tra+eng
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
-4. 舊資料夾 `scam-detector-backend` 在本機目前是未追蹤資料夾，因為前端分支已改名為 `scam-detector`。合併前要決定是否保留或移除舊資料夾。
+若 AI 服務失敗，後端會回退到規則分析，不會讓整個掃描流程中斷。
+
+6. Expo / React Native App 已整合
+
+App 專案位於：
+
+```text
+scam-detector-app/
+```
+
+目前已修正：
+
+```text
+依賴版本衝突
+Token 儲存
+圖片分析快取 image_path 問題
+API base URL fallback 改為 http://127.0.0.1:8002/api
+.env 不再進入 Git 版控
+```
+
+7. GitHub 已更新
+
+最新已推送到 `main`：
+
+```text
+34220fd Update app API fallback URL
+```
+
+## 驗收結果
+
+後端測試：
+
+```text
+php artisan test
+48 passed (461 assertions)
+```
+
+App 測試：
+
+```text
+npm.cmd run test -- --runInBand
+1 passed
+```
+
+TypeScript 檢查：
+
+```text
+npx.cmd tsc --noEmit
+passed
+```
+
+Expo web export：
+
+```text
+npx.cmd expo export --platform web
+Exported: dist
+```
+
+## 正確啟動方式
+
+### 1. 啟動後端 API
+
+```powershell
+cd C:\Users\User\Documents\final_work\scam-detector
+php artisan serve --host=127.0.0.1 --port=8002
+```
+
+可用以下網址確認 API 設定：
+
+```text
+http://127.0.0.1:8002/api/scam/config
+```
+
+注意：`http://127.0.0.1:8002/api` 顯示 404 是正常的，因為沒有設定 API 根目錄首頁。
+
+### 2. 啟動 App 網頁版
+
+```powershell
+cd C:\Users\User\Documents\final_work\scam-detector-app
+npx.cmd expo start --web -c
+```
+
+瀏覽器請開啟：
+
+```text
+http://localhost:8081
+```
+
+不要把 App 畫面開在 `http://127.0.0.1:8002/api`，那裡是 Laravel API，不是 Expo App。
+
+### 3. App API URL 設定
+
+`scam-detector-app/.env` 應設定：
+
+```env
+EXPO_PUBLIC_API_URL=http://127.0.0.1:8002/api
+```
+
+如果使用手機 Expo Go 測試，請改用電腦區域網路 IP：
+
+```env
+EXPO_PUBLIC_API_URL=http://192.168.x.x:8002/api
+```
+
+同時後端要改用：
+
+```powershell
+php artisan serve --host=0.0.0.0 --port=8002
+```
+
+如果手機出現 `Project is incompatible with this version of Expo Go`，代表手機 Expo Go 版本太舊，需要更新 App Store 版本。
+
+## 目前注意事項
+
+1. `.env` 不會上傳 GitHub，前端與後端測試者都要自行建立。
+2. Gemini API key、OpenAI API key 都不能提交到 GitHub。
+3. Expo web 的 `textShadow`、`shadow`、Reanimated reduced motion 警告目前不影響主要功能。
+4. 如果 Expo web 一直打到舊的 API 位址，請用 `npx.cmd expo start --web -c` 清除 Metro 快取。
+5. 正式接手時請優先拉取 `main`，不要使用本機未追蹤的 `scam-detector-backend/`。
 
 ## 下一步
 
-下一步是啟動整合版網站，進行瀏覽器人工操作測試：
+下一步建議做整合人工驗收：
 
-```bash
-cd scam-detector
-php artisan serve
-npm.cmd run dev
-```
-
-然後在瀏覽器測試：
-
-```text
-http://127.0.0.1:8000
-```
-
-已完成 HTTP 層 smoke test，接下來需要用瀏覽器人工確認的畫面與流程：
-
-1. 首頁 Dashboard 是否正常顯示。
-2. 文字分析是否能顯示結果卡。
-3. 網址分析是否能顯示結果卡。
-4. 圖片上傳是否能跑 OCR。
-5. 歷史紀錄是否有新增資料。
-6. 統計圖表是否有資料。
-7. 登入、註冊、管理頁面權限是否正常。
-
-人工測試通過後，再將整合分支合併回 `main`。
+1. 開啟後端 `8002`。
+2. 開啟 Expo web `8081`。
+3. 測試文字分析、網址分析、圖片 OCR 分析。
+4. 測試登入後歷史紀錄是否正確綁定帳號。
+5. 測試統計資料與案例庫是否能正常載入。
+6. 前端負責人確認 App 畫面與 API 串接欄位是否符合需求。
