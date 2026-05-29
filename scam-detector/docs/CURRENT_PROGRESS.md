@@ -28,6 +28,32 @@ scam-detector
 Laravel 12 + Inertia.js + Vue 3 + Sanctum + Tesseract OCR + Gemini/OpenAI AI
 ```
 
+2026-05-30 追加：
+
+前端新增 app 版介面分支：
+
+```text
+feature/react-native-app
+```
+
+目前已切出本機除錯分支：
+
+```text
+codex/app-integration-debug
+```
+
+新增 app 專案：
+
+```text
+scam-detector-app/
+```
+
+專案型態：
+
+```text
+Expo + React Native + Expo Router + Axios
+```
+
 ## 已完成驗收
 
 1. 已安裝 PHP 依賴：
@@ -115,6 +141,28 @@ GET  /api/scam/history
 Bearer token 可用
 分析紀錄正確綁定 user_id
 history_total = 1
+```
+
+12. 已完成 React Native app 版初步除錯：
+
+```text
+npm install 成功
+npm.cmd run test -- --runInBand 成功
+npx.cmd tsc --noEmit 成功
+npx.cmd expo export --platform web 成功
+```
+
+13. 已完成 app 分支後端回歸修正：
+
+```text
+php artisan test -> 48 passed (461 assertions)
+```
+
+14. 已移除 app .env 版控：
+
+```text
+scam-detector-app/.env 不再追蹤
+scam-detector-app/.env.example 保留
 ```
 
 ## 本次後端修正
