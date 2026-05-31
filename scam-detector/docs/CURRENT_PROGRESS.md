@@ -94,6 +94,8 @@ scam-detector-app/
 Token 儲存
 圖片分析快取 image_path 問題
 API base URL fallback 改為 http://127.0.0.1:8002/api
+Expo Web 圖片上傳改用 Blob/File，避免瀏覽器 FormData 送出失敗
+App API timeout 提高到 60 秒，避免 OCR + AI 分析時間超過 10 秒
 .env 不再進入 Git 版控
 ```
 
@@ -196,6 +198,7 @@ php artisan serve --host=0.0.0.0 --port=8002
 3. Expo web 的 `textShadow`、`shadow`、Reanimated reduced motion 警告目前不影響主要功能。
 4. 如果 Expo web 一直打到舊的 API 位址，請用 `npx.cmd expo start --web -c` 清除 Metro 快取。
 5. 正式接手時請優先拉取 `main`，不要使用本機未追蹤的 `scam-detector-backend/`。
+6. Windows 本機 OCR 建議在 `scam-detector/.env` 使用完整路徑：`TESSERACT_PATH="C:/Program Files/Tesseract-OCR/tesseract.exe"`。
 
 ## 下一步
 

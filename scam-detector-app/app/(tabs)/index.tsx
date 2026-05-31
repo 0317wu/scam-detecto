@@ -238,14 +238,20 @@ export default function DashboardScreen() {
       };
 
       const formData = new FormData();
-      // 動態獲取檔名與類型
       const fileType = imageMimeType.split('/')[1] || 'jpg';
+      const fileName = `upload.${fileType}`;
 
-      formData.append('image', {
-        uri: imageUri,
-        name: `upload.${fileType}`,
-        type: imageMimeType,
-      } as any);
+      if (Platform.OS === 'web') {
+        const imageResponse = await fetch(imageUri);
+        const imageBlob = await imageResponse.blob();
+        formData.append('image', imageBlob, fileName);
+      } else {
+        formData.append('image', {
+          uri: imageUri,
+          name: fileName,
+          type: imageMimeType,
+        } as any);
+      }
 
       if (!user && visitorId) {
         formData.append('visitor_id', visitorId);
@@ -253,6 +259,7 @@ export default function DashboardScreen() {
 
       const response = await api.post('/scam/analyze-image', formData, {
         headers,
+        timeout: 60000,
       });
 
       if (response.data && response.data.success) {
