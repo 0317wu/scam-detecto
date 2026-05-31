@@ -96,6 +96,7 @@ Token 儲存
 API base URL fallback 改為 http://127.0.0.1:8002/api
 Expo Web 圖片上傳改用 Blob/File，避免瀏覽器 FormData 送出失敗
 App API timeout 提高到 60 秒，避免 OCR + AI 分析時間超過 10 秒
+OCR 失敗時回傳乾淨錯誤代碼，避免 Windows 非 UTF-8 錯誤訊息造成 JSON 500
 .env 不再進入 Git 版控
 ```
 

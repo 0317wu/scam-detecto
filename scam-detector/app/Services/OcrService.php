@@ -30,7 +30,7 @@ class OcrService
         }
 
         if (! $process->isSuccessful()) {
-            throw new RuntimeException('ocr_failed: '.$process->getErrorOutput());
+            throw new RuntimeException('ocr_failed');
         }
 
         return trim($process->getOutput());
