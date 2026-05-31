@@ -58,11 +58,24 @@ class RuleHelper
     public function detectUrlRules(string $url): array
     {
         $host = parse_url($url, PHP_URL_HOST) ?: $url;
+        $normalizedHost = strtolower($host);
+        $isTrustedOfficialDomain = str_ends_with($normalizedHost, '.gov.tw')
+            || $normalizedHost === 'gov.tw'
+            || str_ends_with($normalizedHost, '.post.gov.tw')
+            || $normalizedHost === 'post.gov.tw';
+        $usesOfficialKeyword = str_contains($normalizedHost, 'gov')
+            || str_contains($normalizedHost, 'post')
+            || str_contains($normalizedHost, 'bank')
+            || str_contains($normalizedHost, 'tax');
+        $usesHighRiskSuffix = preg_match('/\.(top|xyz|vip|click|work|shop)$/i', $normalizedHost) === 1;
+
         $rules = [
             ['factor' => '使用非 HTTPS 或不完整網址', 'weight' => 22, 'patterns' => ['http://']],
             ['factor' => '使用高風險網域後綴', 'weight' => 25, 'scam_type' => '釣魚網站', 'patterns' => ['.top', '.xyz', '.vip', '.click', '.work', '.shop']],
             ['factor' => '疑似短網址或跳轉服務', 'weight' => 24, 'scam_type' => '釣魚網站', 'patterns' => ['bit.ly', 'tinyurl', 'reurl.cc', 'shorturl', 't.co']],
             ['factor' => '網域疑似假冒金融或官方服務', 'weight' => 30, 'scam_type' => '釣魚網站', 'patterns' => ['bank', 'login', 'verify', 'secure', 'gov', 'tw-bank', 'atm']],
+            ['factor' => '網址名稱模仿官方服務但不是官方網域', 'weight' => (! $isTrustedOfficialDomain && $usesOfficialKeyword) ? 40 : 0, 'scam_type' => '釣魚網站', 'patterns' => [$host]],
+            ['factor' => '官方關鍵字搭配高風險網域後綴', 'weight' => (! $isTrustedOfficialDomain && $usesOfficialKeyword && $usesHighRiskSuffix) ? 35 : 0, 'scam_type' => '釣魚網站', 'patterns' => [$host]],
             ['factor' => '網址包含可疑登入或驗證路徑', 'weight' => 20, 'scam_type' => '釣魚網站', 'patterns' => ['password', 'otp', 'account', 'signin', 'auth']],
             ['factor' => '網域層級過多，可能混淆真實來源', 'weight' => substr_count($host, '.') >= 3 ? 18 : 0, 'patterns' => [$host]],
         ];

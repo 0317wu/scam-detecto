@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 class FraudService
 {
     private const CACHE_TTL_SECONDS = 1800;
+    private const CACHE_VERSION = 'v2';
 
     public function __construct(
         private readonly RuleHelper $ruleHelper,
@@ -163,7 +164,7 @@ class FraudService
 
     private function cacheKey(string $inputType, string $source): string
     {
-        return sprintf('fraud_scan:%s:%s', $inputType, hash('sha256', $source));
+        return sprintf('fraud_scan:%s:%s:%s', self::CACHE_VERSION, $inputType, hash('sha256', $source));
     }
 
     private function buildSummary(string $level, string $scamType, array $factors): string

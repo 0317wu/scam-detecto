@@ -97,6 +97,7 @@ API base URL fallback 改為 http://127.0.0.1:8002/api
 Expo Web 圖片上傳改用 Blob/File，避免瀏覽器 FormData 送出失敗
 App API timeout 提高到 60 秒，避免 OCR + AI 分析時間超過 10 秒
 OCR 失敗時回傳乾淨錯誤代碼，避免 Windows 非 UTF-8 錯誤訊息造成 JSON 500
+網址規則加強：假冒官方/郵政/政府字樣且搭配高風險網域後綴時，會判定為高風險釣魚網站
 .env 不再進入 Git 版控
 ```
 
@@ -114,7 +115,7 @@ OCR 失敗時回傳乾淨錯誤代碼，避免 Windows 非 UTF-8 錯誤訊息造
 
 ```text
 php artisan test
-48 passed (461 assertions)
+49 passed (468 assertions)
 ```
 
 App 測試：

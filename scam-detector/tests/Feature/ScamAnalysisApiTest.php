@@ -70,6 +70,22 @@ class ScamAnalysisApiTest extends TestCase
         $this->assertSame(1, ScamScan::where('input_type', 'url')->count());
     }
 
+    public function test_url_analysis_marks_fake_post_government_domain_as_danger(): void
+    {
+        $response = $this->postJson('/api/scam/analyze-url', [
+            'url' => 'https://www.tw-post-gov.xyz',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.input_type', 'url')
+            ->assertJsonPath('data.risk_level', 'danger')
+            ->assertJsonPath('data.scam_type', '釣魚網站');
+
+        $this->assertGreaterThanOrEqual(70, $response->json('data.risk_score'));
+        $this->assertContains('網址名稱模仿官方服務但不是官方網域', $response->json('data.risk_factors'));
+    }
+
     public function test_safe_text_returns_low_risk_result(): void
     {
         $response = $this->postJson('/api/scam/analyze-text', [
