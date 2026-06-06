@@ -40,8 +40,8 @@ class AiFraudService
 
     private function callOpenAi(string $inputType, string $content, array $ruleAnalysis): array
     {
-        $response = Http::withToken(config('ai.openai.api_key'))
-            ->timeout(config('ai.timeout'))
+        $response = $this->httpClient()
+            ->withToken(config('ai.openai.api_key'))
             ->acceptJson()
             ->post(config('ai.openai.base_url').'/chat/completions', [
                 'model' => config('ai.openai.model'),
@@ -81,7 +81,7 @@ class AiFraudService
             config('ai.gemini.api_key')
         );
 
-        $response = Http::timeout(config('ai.timeout'))
+        $response = $this->httpClient()
             ->acceptJson()
             ->post($url, [
                 'contents' => [
@@ -112,6 +112,17 @@ class AiFraudService
         }
 
         return $this->normalize($decoded, $response->json());
+    }
+
+    private function httpClient()
+    {
+        $client = Http::timeout(config('ai.timeout'));
+
+        if (! (bool) config('ai.ssl_verify')) {
+            return $client->withoutVerifying();
+        }
+
+        return $client;
     }
 
     private function payloadJson(string $inputType, string $content, array $ruleAnalysis): string

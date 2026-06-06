@@ -134,16 +134,17 @@ export default function HistoryScreen() {
     const typeInfo = getInputTypeLabel(item.input_type);
     const riskInfo = getRiskStyle(item.risk_level);
 
-    // 格式化顯示的內容簡介
-    let previewContent = '';
+    // 格式化顯示的內容簡介，完整內容會在展開後呈現。
+    let fullContent = '';
     if (item.input_type === 'text') {
-      previewContent = item.content || '';
+      fullContent = item.content || '';
     } else if (item.input_type === 'url') {
-      previewContent = item.url || '';
+      fullContent = item.url || '';
     } else if (item.input_type === 'image') {
-      previewContent = item.ocr_text ? `[OCR]: ${item.ocr_text}` : '[影像已加密儲存]';
+      fullContent = item.ocr_text ? `[OCR]: ${item.ocr_text}` : '[影像已加密儲存]';
     }
 
+    let previewContent = fullContent;
     if (previewContent.length > 50) {
       previewContent = previewContent.substring(0, 50) + '...';
     }
@@ -168,9 +169,12 @@ export default function HistoryScreen() {
           {/* 主體資訊 */}
           <View style={styles.cardMainRow}>
             <View style={styles.contentCol}>
-              <Text style={styles.previewText} numberOfLines={2}>
-                {previewContent || '[無可顯示內容]'}
-              </Text>
+              <View style={styles.previewRow}>
+                <Text style={styles.expandSymbol}>{isExpanded ? '-' : '+'}</Text>
+                <Text style={styles.previewText} numberOfLines={2}>
+                  {previewContent || '[無可顯示內容]'}
+                </Text>
+              </View>
               {item.scam_type && (
                 <Text style={styles.scamTypeTag}>
                   詐騙類型：{item.scam_type}
@@ -193,7 +197,7 @@ export default function HistoryScreen() {
               系統判定：{riskInfo.label}
             </Text>
             <Text style={styles.expandToggleText}>
-              {isExpanded ? '▲ 點擊收合' : '▼ 點擊看詳細報告'}
+              {isExpanded ? '點擊收合' : '點擊看詳細報告'}
             </Text>
           </View>
         </TouchableOpacity>
@@ -202,6 +206,18 @@ export default function HistoryScreen() {
         {isExpanded && (
           <View style={styles.detailWrapper}>
             <View style={styles.detailDivider} />
+            <View style={styles.fullContentPanel}>
+              <Text style={styles.fullContentTitle}>INPUT_CONTENT</Text>
+              <Text style={styles.fullContentText}>
+                {fullContent || '[無可顯示內容]'}
+              </Text>
+            </View>
+            {item.summary && (
+              <View style={styles.fullContentPanel}>
+                <Text style={styles.fullContentTitle}>AI_SUMMARY</Text>
+                <Text style={styles.fullContentText}>{item.summary}</Text>
+              </View>
+            )}
             <ResultCard
               risk_level={item.risk_level}
               score={item.risk_score}
@@ -433,7 +449,20 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 15,
   },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  expandSymbol: {
+    color: '#00ff66',
+    fontSize: 14,
+    fontWeight: '900',
+    lineHeight: 20,
+    marginRight: 8,
+    width: 10,
+  },
   previewText: {
+    flex: 1,
     color: '#ffffff',
     fontSize: 14,
     lineHeight: 20,
@@ -488,5 +517,26 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     marginBottom: 5,
+  },
+  fullContentPanel: {
+    backgroundColor: '#12141c',
+    borderLeftWidth: 2,
+    borderLeftColor: '#00ff66',
+    borderRadius: 10,
+    marginHorizontal: 6,
+    marginTop: 10,
+    padding: 12,
+  },
+  fullContentTitle: {
+    color: '#8f9cae',
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  fullContentText: {
+    color: '#e2e8f0',
+    fontSize: 13,
+    lineHeight: 20,
   },
 });

@@ -25,6 +25,7 @@ class ScamScan extends Model
         'risk_factors',
         'suggestions',
         'ai_raw_response',
+        'is_converted_to_case',
     ];
 
     protected function casts(): array
@@ -34,6 +35,7 @@ class ScamScan extends Model
             'risk_factors' => 'array',
             'suggestions' => 'array',
             'ai_raw_response' => 'array',
+            'is_converted_to_case' => 'boolean',
         ];
     }
 

@@ -58,9 +58,21 @@ class ScamDashboardController extends Controller
      */
     private function applyOwnerQuery($query, ?int $userId, ?string $visitorId)
     {
+        if ($userId && $visitorId) {
+            return $query->where(function ($query) use ($userId, $visitorId) {
+                $query
+                    ->where('user_id', $userId)
+                    ->orWhere(function ($query) use ($visitorId) {
+                        $query->whereNull('user_id')->where('visitor_id', $visitorId);
+                    });
+            });
+        }
+
         if ($userId) {
             return $query->where('user_id', $userId);
-        } elseif ($visitorId) {
+        }
+
+        if ($visitorId) {
             return $query->whereNull('user_id')->where('visitor_id', $visitorId);
         }
 

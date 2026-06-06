@@ -96,6 +96,42 @@ class ScamDashboardApiTest extends TestCase
             ]);
     }
 
+    public function test_authenticated_user_with_visitor_id_gets_own_and_visitor_stats(): void
+    {
+        $user = User::factory()->create();
+        $visitorId = 'v-browser-session-1234';
+
+        $this->createScan($user, [
+            'risk_level' => 'warning',
+            'risk_score' => 50,
+            'scam_type' => '釣魚網站',
+            'created_at' => CarbonImmutable::today(),
+        ]);
+
+        ScamScan::create([
+            'visitor_id' => $visitorId,
+            'input_type' => 'text',
+            'content' => '同一瀏覽器訪客紀錄',
+            'risk_score' => 95,
+            'risk_level' => 'danger',
+            'scam_type' => '假退稅詐騙',
+            'summary' => '測試摘要',
+            'created_at' => CarbonImmutable::today(),
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson("/api/scam/stats?visitor_id={$visitorId}")
+            ->assertOk()
+            ->assertJsonPath('data.summary.total_scans', 2)
+            ->assertJsonPath('data.summary.danger_scans', 1)
+            ->assertJsonPath('data.summary.warning_scans', 1)
+            ->assertJsonFragment([
+                'scam_type' => '假退稅詐騙',
+                'count' => 1,
+            ]);
+    }
+
     public function test_cases_api_returns_active_seeded_cases(): void
     {
         $this->seed();

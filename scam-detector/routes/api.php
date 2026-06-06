@@ -47,6 +47,7 @@ Route::prefix('scam')->middleware('optional.sanctum')->group(function () {
     // 管理員案例庫維護 API（需登入且具備管理員權限）
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::get('/scans', [ScamAdminScanController::class, 'index']);
+        Route::post('/scans/{scan}/case', [ScamAdminScanController::class, 'convertToCase']);
         Route::post('/cases', [ScamCaseController::class, 'store']);
         Route::put('/cases/{case}', [ScamCaseController::class, 'update']);
         Route::delete('/cases/{case}', [ScamCaseController::class, 'destroy']);

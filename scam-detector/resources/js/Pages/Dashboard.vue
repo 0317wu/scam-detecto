@@ -287,10 +287,9 @@ const resetScanner = () => {
 };
 
 const loadUserStats = () => {
-  const params = {};
-  if (!page.props.auth?.user) {
-    params.visitor_id = getVisitorId();
-  }
+  const params = {
+    visitor_id: getVisitorId()
+  };
 
   axios.get('/api/scam/stats', { params })
     .then((response) => {
