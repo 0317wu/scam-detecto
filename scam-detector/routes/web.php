@@ -34,13 +34,16 @@ Route::get('/cases-manager', function () {
 })->middleware(['auth'])->name('cases-manager');
 
 // 掃描紀錄總管（僅限登入的管理員）
-Route::get('/scans-manager', function () {
+$renderScansManager = function () {
     if (! auth()->user()?->is_admin) {
         abort(403, 'Unauthorized.');
     }
 
     return Inertia::render('ScansManager');
-})->middleware(['auth'])->name('scans-manager');
+};
+
+Route::get('/scans-manager', $renderScansManager)->middleware(['auth'])->name('scans-manager');
+Route::get('/scan', $renderScansManager)->middleware(['auth'])->name('scan');
 
 // 個人資料設定
 Route::middleware('auth')->group(function () {

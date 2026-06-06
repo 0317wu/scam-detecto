@@ -80,6 +80,21 @@
           <!-- 僅管理員可見的案例庫維護入口 -->
           <Link 
             v-if="$page.props.auth?.user?.is_admin"
+            href="/scans-manager" 
+            class="nav-btn text-mono" 
+            :class="{ active: $page.url.startsWith('/scans-manager') }"
+          >
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3v18h18"></path>
+                <path d="M7 15l4-4 3 3 5-7"></path>
+              </svg>
+            </span>
+            <span class="nav-text">SCANS</span>
+          </Link>
+
+          <Link 
+            v-if="$page.props.auth?.user?.is_admin"
             href="/cases-manager" 
             class="nav-btn text-mono" 
             :class="{ active: $page.url.startsWith('/cases-manager') }"

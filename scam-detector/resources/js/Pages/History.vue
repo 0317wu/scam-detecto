@@ -40,6 +40,13 @@
           </div>
         </div>
 
+        <div class="logs-meta-strip text-mono">
+          <span>[ SORT: NEWEST_TO_OLDEST ]</span>
+          <span>TOTAL {{ totalItems }}</span>
+          <span v-if="totalItems > 0">SHOWING {{ visibleStart }}-{{ visibleEnd }}</span>
+          <span v-if="isLoadingLogs" class="syncing-label">SYNCING_LOGS...</span>
+        </div>
+
         <!-- 日誌表格 -->
         <div class="table-container">
           <table class="cyber-table">
@@ -53,28 +60,61 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="log in paginatedLogs" :key="log.id" :class="'row-' + log.status">
-                <td class="text-mono col-time">{{ log.date }}</td>
-                <td class="col-media">
-                  <span class="media-tag text-mono">{{ log.type }}</span>
-                </td>
-                <td class="col-content">
-                  <div class="content-text text-mono" :title="log.input_text" style="color: var(--color-safe); font-size: 0.8rem; margin-bottom: 0.2rem;">> {{ log.input_text }}</div>
-                  <div class="content-text" :title="log.snippet">{{ log.snippet }}</div>
-                  <div class="sub-label text-mono">{{ log.type_label }}</div>
-                </td>
-                <td class="text-center text-mono col-score font-bold" :class="'text-' + log.status">
-                  {{ log.score }}
-                </td>
-                <td class="col-status">
-                  <span class="status-glow-label text-mono" :class="'lbl-' + log.status">
-                    {{ log.status.toUpperCase() }}
-                  </span>
+              <tr v-if="isLoadingLogs">
+                <td colspan="5" class="empty-row text-center text-mono">
+                  [ LOADING_SECURITY_SCAN_LOGS ]
                 </td>
               </tr>
-              <tr v-if="filteredLogs.length === 0">
+              <template v-else>
+                <tr v-for="log in paginatedLogs" :key="log.id" :class="'row-' + log.status">
+                  <td class="text-mono col-time">{{ log.date }}</td>
+                  <td class="col-media">
+                    <span class="media-tag text-mono">{{ log.type }}</span>
+                  </td>
+                  <td class="col-content">
+                    <details class="log-details">
+                      <summary class="content-preview text-mono">
+                        <span class="expand-prefix" aria-hidden="true"></span>
+                        <span class="preview-copy">{{ log.input_text }}</span>
+                      </summary>
+                      <div class="full-content-block">
+                        <div class="full-content-title text-mono">INPUT_CONTENT</div>
+                        <p>{{ log.input_text }}</p>
+                      </div>
+                      <div v-if="log.snippet" class="full-content-block">
+                        <div class="full-content-title text-mono">AI_SUMMARY</div>
+                        <p>{{ log.snippet }}</p>
+                      </div>
+                    </details>
+                    <div class="content-summary">{{ log.snippet }}</div>
+                    <div class="sub-label text-mono">{{ log.type_label }}</div>
+                    <div v-if="isAdmin && isConvertibleLog(log)" class="admin-rule-action">
+                      <button
+                        type="button"
+                        class="rule-action-btn text-mono"
+                        :disabled="convertingLogId === log.id || log.converted"
+                        @click.stop="convertLogToCase(log)"
+                    >
+                      {{ log.converted ? '已經加入' : convertingLogId === log.id ? '加入中' : '加入防禦規則' }}
+                      </button>
+                      <span v-if="conversionErrors[log.id]" class="rule-action-error text-mono">
+                        {{ conversionErrors[log.id] }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="text-center text-mono col-score font-bold" :class="'text-' + log.status">
+                    {{ log.score }}
+                  </td>
+                  <td class="col-status">
+                    <span class="status-glow-label text-mono" :class="'lbl-' + log.status">
+                      {{ log.status.toUpperCase() }}
+                    </span>
+                  </td>
+                </tr>
+              </template>
+              <tr v-if="!isLoadingLogs && filteredLogs.length === 0">
                 <td colspan="5" class="empty-row text-center text-mono">
-                  [ NO_LOGS_FOUND_MATCHING_CRITERIA ]
+                  {{ searchQuery ? '[ NO_LOGS_FOUND_MATCHING_CRITERIA ]' : '[ NO_SECURITY_SCAN_LOGS_YET ]' }}
                 </td>
               </tr>
             </tbody>
@@ -85,20 +125,20 @@
         <div v-if="totalPages > 1" class="cyber-pagination text-mono">
           <button 
             :disabled="currentPage === 1" 
-            @click="currentPage--" 
+            @click="goToPage(currentPage - 1)" 
             class="cyber-btn-sec"
           >
-            [ PREV_PAGE ]
+            [ NEWER_LOGS ]
           </button>
           <span class="page-info">
             PAGE {{ String(currentPage).padStart(2, '0') }} / {{ String(totalPages).padStart(2, '0') }}
           </span>
           <button 
             :disabled="currentPage >= totalPages" 
-            @click="currentPage++" 
+            @click="goToPage(currentPage + 1)" 
             class="cyber-btn-sec"
           >
-            [ NEXT_PAGE ]
+            [ OLDER_LOGS ]
           </button>
         </div>
       </section>
@@ -116,6 +156,9 @@ import StatChart from '@/Components/StatChart.vue';
 const page = usePage();
 const searchQuery = ref('');
 const logsData = ref([]);
+const convertingLogId = ref(null);
+const conversionErrors = ref({});
+const isAdmin = computed(() => Boolean(page.props.auth?.user?.is_admin));
 
 // 取得或生成訪客唯一識別碼
 const getVisitorId = () => {
@@ -139,6 +182,43 @@ const totalItems = ref(0);
 
 const isLoadingLogs = ref(false);
 const isLoadingStats = ref(false);
+
+const visibleStart = computed(() => {
+  if (totalItems.value === 0) return 0;
+  return ((currentPage.value - 1) * itemsPerPage.value) + 1;
+});
+
+const visibleEnd = computed(() => {
+  if (totalItems.value === 0) return 0;
+  return Math.min(currentPage.value * itemsPerPage.value, totalItems.value);
+});
+
+const isConvertibleLog = (log) => ['warning', 'danger'].includes(log.status);
+
+const goToPage = (pageNumber) => {
+  if (pageNumber < 1 || pageNumber > totalPages.value || pageNumber === currentPage.value) return;
+  currentPage.value = pageNumber;
+};
+
+const convertLogToCase = async (log) => {
+  if (!isAdmin.value || !isConvertibleLog(log) || convertingLogId.value) return;
+  if (!confirm('確定要將此高風險掃描紀錄加入防禦規則資料庫嗎？')) return;
+
+  convertingLogId.value = log.id;
+  conversionErrors.value = { ...conversionErrors.value, [log.id]: '' };
+
+  try {
+    await axios.post(`/api/scam/scans/${log.id}/case`);
+    log.converted = true;
+  } catch (error) {
+    conversionErrors.value = {
+      ...conversionErrors.value,
+      [log.id]: error.response?.data?.message || 'CONVERSION_FAILED'
+    };
+  } finally {
+    convertingLogId.value = null;
+  }
+};
 
 // 日期格式化工具，格式化為 YYYY-MM-DD HH:mm
 const formatDate = (dateStr) => {
@@ -170,7 +250,6 @@ const loadHistoryLogs = async () => {
       per_page: itemsPerPage.value
     };
 
-    // 若使用者未登入，則帶入訪客識別碼
     if (!page.props.auth?.user) {
       params.visitor_id = getVisitorId();
     }
@@ -195,11 +274,14 @@ const loadHistoryLogs = async () => {
           input_text: inputContent || '[ No Input Content ]',
           score: typeof item.risk_score === 'number' ? item.risk_score : 0,
           status: ['safe', 'warning', 'danger'].includes(item.risk_level) ? item.risk_level : 'safe',
-          type_label: item.scam_type || ''
+          type_label: item.scam_type || '',
+          converted: Boolean(item.converted_to_case)
         };
       });
 
       if (data.pagination) {
+        currentPage.value = typeof data.pagination.current_page === 'number' ? data.pagination.current_page : currentPage.value;
+        itemsPerPage.value = typeof data.pagination.per_page === 'number' ? data.pagination.per_page : itemsPerPage.value;
         totalPages.value = typeof data.pagination.last_page === 'number' ? data.pagination.last_page : 1;
         totalItems.value = typeof data.pagination.total === 'number' ? data.pagination.total : 0;
       }
@@ -398,6 +480,21 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
+.logs-meta-strip {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  gap: 0.6rem 1rem;
+  letter-spacing: 1px;
+  margin: -0.5rem 0 1rem;
+}
+
+.syncing-label {
+  color: var(--color-safe);
+}
+
 /* 搜尋框 */
 .search-container {
   display: flex;
@@ -439,6 +536,7 @@ onMounted(() => {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  table-layout: fixed;
 }
 
 .cyber-table th {
@@ -464,11 +562,11 @@ onMounted(() => {
 .col-time {
   color: var(--color-text-muted);
   font-size: 0.8rem;
-  width: 150px;
+  width: 110px;
 }
 
 .col-media {
-  width: 90px;
+  width: 74px;
 }
 
 .media-tag {
@@ -482,14 +580,100 @@ onMounted(() => {
 }
 
 .col-content {
-  max-width: 400px;
+  min-width: 0;
+  width: auto;
 }
 
-.content-text {
-  white-space: nowrap;
+.log-details {
+  color: var(--color-text-main);
+}
+
+.content-preview {
+  align-items: baseline;
+  color: var(--color-safe);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.8rem;
+  gap: 0.45rem;
+  line-height: 1.55;
+  margin-bottom: 0.35rem;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  list-style: none;
+}
+
+.content-preview::marker,
+.content-preview::-webkit-details-marker {
+  display: none;
+}
+
+.content-preview:hover {
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.25);
+}
+
+.expand-prefix::before {
+  content: "+";
+  color: var(--color-safe);
+  font-weight: bold;
+}
+
+.log-details[open] .expand-prefix::before {
+  content: "-";
+}
+
+.preview-copy {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-details[open] .content-preview {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.log-details[open] .preview-copy {
+  overflow: visible;
+}
+
+.content-summary {
   color: var(--color-text-main);
+  line-height: 1.55;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-details[open] + .content-summary {
+  display: none;
+}
+
+.full-content-block {
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid var(--color-safe);
+  border-radius: 4px;
+  margin: 0.55rem 0;
+  padding: 0.75rem;
+}
+
+.full-content-title {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  margin-bottom: 0.35rem;
+}
+
+.full-content-block p {
+  color: var(--color-text-main);
+  line-height: 1.65;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .sub-label {
@@ -498,8 +682,45 @@ onMounted(() => {
   margin-top: 0.15rem;
 }
 
+.admin-rule-action {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.rule-action-btn {
+  background: rgba(0, 242, 254, 0.06);
+  border: 1px solid rgba(0, 242, 254, 0.45);
+  border-radius: 4px;
+  color: var(--color-safe);
+  cursor: pointer;
+  font-size: 0.68rem;
+  letter-spacing: 0.6px;
+  padding: 0.35rem 0.55rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.rule-action-btn:hover:not(:disabled) {
+  background: rgba(0, 242, 254, 0.14);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+}
+
+.rule-action-btn:disabled {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.rule-action-error {
+  color: var(--color-danger);
+  font-size: 0.68rem;
+}
+
 .col-score {
-  width: 90px;
+  width: 84px;
 }
 
 .text-center {
@@ -511,7 +732,7 @@ onMounted(() => {
 }
 
 .col-status {
-  width: 120px;
+  width: 96px;
 }
 
 /* 發光標籤 */
@@ -608,6 +829,13 @@ onMounted(() => {
   }
   .search-container {
     width: 100%;
+  }
+  .logs-meta-strip {
+    margin-top: 0;
+  }
+  .admin-rule-action {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

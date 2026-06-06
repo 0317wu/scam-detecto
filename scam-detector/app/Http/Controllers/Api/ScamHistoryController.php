@@ -28,7 +28,15 @@ class ScamHistoryController extends Controller
 
         $query = ScamScan::query();
 
-        if ($user) {
+        if ($user && $visitorId) {
+            $query->where(function ($query) use ($user, $visitorId) {
+                $query
+                    ->where('user_id', $user->id)
+                    ->orWhere(function ($query) use ($visitorId) {
+                        $query->whereNull('user_id')->where('visitor_id', $visitorId);
+                    });
+            });
+        } elseif ($user) {
             $query->where('user_id', $user->id);
         } elseif ($visitorId) {
             $query->whereNull('user_id')->where('visitor_id', $visitorId);
@@ -79,14 +87,10 @@ class ScamHistoryController extends Controller
         $user = $request->user() ?: $request->user('sanctum');
         $visitorId = $request->input('visitor_id') ?: $request->header('X-Visitor-Id');
 
-        if ($user) {
-            if ($scan->user_id !== $user->id) {
-                return response()->error('scan_not_found', null, 404);
-            }
-        } elseif ($visitorId) {
-            if ($scan->user_id !== null || $scan->visitor_id !== $visitorId) {
-                return response()->error('scan_not_found', null, 404);
-            }
+        if ($user && ($user->is_admin || $scan->user_id === $user->id)) {
+            // 使用者可查看自己的登入紀錄，管理員可查看所有紀錄。
+        } elseif (! $user && $visitorId && $scan->user_id === null && $scan->visitor_id === $visitorId) {
+            // 同一瀏覽器訪客可查看自己的訪客紀錄。
         } else {
             return response()->error('scan_not_found', null, 404);
         }
@@ -113,8 +117,14 @@ class ScamHistoryController extends Controller
             'summary' => $scan->summary,
             'risk_factors' => $scan->risk_factors ?? [],
             'suggestions' => $scan->suggestions ?? [],
+            'converted_to_case' => (bool) $scan->is_converted_to_case,
             'ai_used' => $scan->ai_raw_response !== null,
             'created_at' => $scan->created_at?->format('Y-m-d H:i:s'),
         ];
+    }
+
+    private function caseTitleForScan(ScamScan $scan): string
+    {
+        return sprintf('%s #SCAN-%d', $scan->scam_type ?: '自動收錄案例', $scan->id);
     }
 }

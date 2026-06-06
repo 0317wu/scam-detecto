@@ -4,6 +4,7 @@ return [
     'enabled' => env('AI_ANALYSIS_ENABLED', false),
     'provider' => env('AI_PROVIDER', 'openai'),
     'timeout' => (int) env('AI_TIMEOUT', 30),
+    'ssl_verify' => env('AI_SSL_VERIFY', true),
 
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
