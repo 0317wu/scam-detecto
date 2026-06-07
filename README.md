@@ -37,54 +37,128 @@
 
 ## 快速啟動指南 (Quick Start)
 
-請確保您的電腦已安裝 PHP 8.2+、Composer 以及 Node.js。
+請先安裝 PHP 8.2+、Composer、Node.js、Tesseract OCR，以及手機測試需要的 Expo Go。
 
-### 第一部分：啟動後端伺服器 (Laravel)
-1. **進入後端目錄並安裝依賴**
-   ```bash
-   cd scam-detector
-   composer install
-   npm install
-   ```
-2. **環境變數與資料庫設定**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
-   *建議在 Windows 下手動新增 `database/database.sqlite` 檔案。*
-   接著執行遷移與種子植入：
-   ```bash
-   php artisan migrate --seed
-   ```
-3. **啟動後端 API 服務**
-   ```bash
-   php artisan serve --host=127.0.0.1 --port=8002
-   ```
-   App 串接時建議固定使用 `http://127.0.0.1:8002/api`。如果只測 Laravel Web 頁面，也可以改用 Laravel 預設的 `8000`。
+### 1. 後端 API 與 Laravel Web 版
 
----
+後端資料夾是 `scam-detector/`。第一次啟動請先安裝依賴、建立 `.env`、初始化 SQLite 資料庫：
 
-### 第二部分：啟動行動 App 端 (Expo)
-1. **進入 App 目錄並安裝依賴**
-   開啟一個全新的終端機窗口：
-   ```bash
-   cd scam-detector-app
-   npm install
-   ```
-2. **環境變數設定**
-   ```bash
-   cp .env.example .env
-   ```
-   確保 `.env` 中的 `EXPO_PUBLIC_API_URL` 正確指向後端 API：
-   ```env
-   EXPO_PUBLIC_API_URL=http://127.0.0.1:8002/api
-   ```
-   如果使用實體手機測試，`127.0.0.1` 會變成手機自己，請改成電腦的區域網路 IP，例如 `http://192.168.x.x:8002/api`，並讓 Laravel 綁定 `0.0.0.0`。
-3. **啟動 Expo Web 開發伺服器**
-   ```bash
-   npx.cmd expo start --web -c
-   ```
-   網頁版請開啟 `http://localhost:8081`，不要直接開 `http://127.0.0.1:8002/api`，因為那是 API 根路徑。
+```powershell
+cd scam-detector
+composer install
+npm install
+copy .env.example .env
+php artisan key:generate
+New-Item -ItemType File -Path database/database.sqlite -Force
+php artisan migrate --seed
+```
+
+如果要使用真 OCR 與 Gemini AI，請在 `scam-detector/.env` 設定：
+
+```env
+TESSERACT_PATH="C:/Program Files/Tesseract-OCR/tesseract.exe"
+OCR_LANGUAGE=chi_tra+eng
+AI_ANALYSIS_ENABLED=true
+AI_PROVIDER=gemini
+GEMINI_API_KEY=你的_Gemini_API_Key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+設定後清除 Laravel 設定快取：
+
+```powershell
+php artisan config:clear
+```
+
+電腦本機測試時，後端固定開在 `8002`：
+
+```powershell
+php artisan serve --host=127.0.0.1 --port=8002
+```
+
+Laravel Web 版網址：
+
+```text
+http://127.0.0.1:8002
+```
+
+API 健康檢查網址：
+
+```text
+http://127.0.0.1:8002/api/scam/config
+```
+
+注意：`http://127.0.0.1:8002/api` 顯示 404 是正常的，因為 API 根目錄沒有做首頁。
+
+### 2. 電腦網頁版 App (Expo Web)
+
+App 資料夾是 `scam-detector-app/`。第一次啟動請先安裝依賴並建立 `.env`：
+
+```powershell
+cd scam-detector-app
+npm install
+copy .env.example .env
+```
+
+電腦網頁版測試時，`scam-detector-app/.env` 請設定：
+
+```env
+EXPO_PUBLIC_API_URL=http://127.0.0.1:8002/api
+```
+
+啟動 Expo Web：
+
+```powershell
+npx.cmd expo start --web -c
+```
+
+電腦網頁版網址：
+
+```text
+http://localhost:8081
+```
+
+### 3. 手機版 App (Expo Go)
+
+手機和電腦必須連同一個 Wi-Fi。先在電腦查詢區域網路 IP：
+
+```powershell
+ipconfig
+```
+
+找到 Wi-Fi 或乙太網路的 `IPv4 Address`，例如：
+
+```text
+192.168.20.72
+```
+
+手機版測試時，後端不能只綁 `127.0.0.1`，要改成：
+
+```powershell
+cd scam-detector
+php artisan serve --host=0.0.0.0 --port=8002
+```
+
+接著把 `scam-detector-app/.env` 改成電腦 IP：
+
+```env
+EXPO_PUBLIC_API_URL=http://192.168.20.72:8002/api
+```
+
+重新啟動 Expo，並用手機 Expo Go 掃描 QR Code：
+
+```powershell
+cd scam-detector-app
+npx.cmd expo start -c
+```
+
+如果只想用手機瀏覽器開 Web 版，可開：
+
+```text
+http://192.168.20.72:8081
+```
+
+如果手機出現 `Project is incompatible with this version of Expo Go`，請更新 App Store / Google Play 裡的 Expo Go。
 
 ---
 
@@ -120,4 +194,3 @@
     ```
 
 > 本專案已完全優化並清除不需要上傳的敏感檔案與日誌，可隨時發布至正式環境。
-   
