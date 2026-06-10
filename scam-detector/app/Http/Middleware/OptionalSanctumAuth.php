@@ -11,7 +11,7 @@ class OptionalSanctumAuth
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::guard('sanctum')->user();
+        $user = Auth::guard('sanctum')->user() ?: Auth::guard('web')->user();
 
         if ($user) {
             $request->setUserResolver(fn () => $user);

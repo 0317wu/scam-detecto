@@ -100,6 +100,7 @@ App API timeout 提高到 60 秒，避免 OCR + AI 分析時間超過 10 秒
 OCR 失敗時回傳乾淨錯誤代碼，避免 Windows 非 UTF-8 錯誤訊息造成 JSON 500
 網址規則加強：假冒官方/郵政/政府字樣且搭配高風險網域後綴時，會判定為高風險釣魚網站
 管理員後台 History/Stats 可查看全部使用者與訪客掃描紀錄
+區網 IP 測試時補上 SANCTUM_STATEFUL_DOMAINS，避免管理員 Web session 無法套用到 API
 .env 不再進入 Git 版控
 ```
 
@@ -203,6 +204,7 @@ php artisan serve --host=0.0.0.0 --port=8002
 4. 如果 Expo web 一直打到舊的 API 位址，請用 `npx.cmd expo start --web -c` 清除 Metro 快取。
 5. 正式接手時請優先拉取 `main`，不要使用本機未追蹤的 `scam-detector-backend/`。
 6. Windows 本機 OCR 建議在 `scam-detector/.env` 使用完整路徑：`TESSERACT_PATH="C:/Program Files/Tesseract-OCR/tesseract.exe"`。
+7. 若使用 `192.168.x.x:8002` 開 Laravel Web 後台，`scam-detector/.env` 需要加入該 IP 到 `SANCTUM_STATEFUL_DOMAINS`，並執行 `php artisan config:clear`。
 
 ## 下一步
 
