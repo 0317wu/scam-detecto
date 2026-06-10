@@ -45,6 +45,10 @@ export default function DashboardScreen() {
     suggestions: string[];
   } | null>(null);
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState({
+    title: '防禦系統連線異常',
+    desc: '請檢查您的網路連接，或稍後再試。',
+  });
 
   // 載入或生成 visitor_id
   useEffect(() => {
@@ -71,6 +75,10 @@ export default function DashboardScreen() {
     setImageMimeType('image/jpeg');
     setResult(null);
     setError(false);
+    setErrorMessage({
+      title: '防禦系統連線異常',
+      desc: '請檢查您的網路連接，或稍後再試。',
+    });
   };
 
   // 當切換 Tab 時，重置結果
@@ -137,9 +145,31 @@ export default function DashboardScreen() {
     }
 
     let formattedUrl = urlInput.trim();
-    // 若無 http/https 前綴，自動提示或補上，後端 validate 要求為 url
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(formattedUrl) && !/^https?:\/\//i.test(formattedUrl)) {
+      setErrorMessage({
+        title: '網址格式無效',
+        desc: '網址開頭只能使用 http:// 或 https://，請確認是否輸入錯字。',
+      });
+      setError(true);
+      return;
+    }
+
     if (!/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = 'https://' + formattedUrl;
+    }
+
+    try {
+      const parsedUrl = new URL(formattedUrl);
+      if (!parsedUrl.hostname.includes('.')) {
+        throw new Error('invalid_hostname');
+      }
+    } catch {
+      setErrorMessage({
+        title: '網址格式無效',
+        desc: '請輸入完整網址，例如 https://example.com。',
+      });
+      setError(true);
+      return;
     }
 
     setLoading(true);
@@ -166,10 +196,24 @@ export default function DashboardScreen() {
           suggestions: data.suggestions,
         });
       } else {
+        setErrorMessage({
+          title: '網址分析失敗',
+          desc: '防禦系統無法完成這次網址分析，請確認網址後再試。',
+        });
         setError(true);
       }
     } catch (err) {
       console.error('網址分析失敗', err);
+      const status = (err as any)?.response?.status;
+      setErrorMessage(status === 422
+        ? {
+            title: '網址格式無效',
+            desc: '請輸入完整且有效的網址，例如 https://example.com。',
+          }
+        : {
+            title: '防禦系統連線異常',
+            desc: '請檢查後端 API 是否已啟動，或稍後再試。',
+          });
       setError(true);
     } finally {
       setLoading(false);
@@ -451,8 +495,8 @@ export default function DashboardScreen() {
             <View style={styles.errorCard}>
               <Text style={styles.errorIcon}>🚨</Text>
               <View style={styles.errorTextContainer}>
-                <Text style={styles.errorTitle}>防禦系統連線異常</Text>
-                <Text style={styles.errorDesc}>請檢查您的網路連接，或稍後再試。</Text>
+                <Text style={styles.errorTitle}>{errorMessage.title}</Text>
+                <Text style={styles.errorDesc}>{errorMessage.desc}</Text>
               </View>
               <TouchableOpacity style={styles.retryButton} onPress={handleReset}>
                 <Text style={styles.retryButtonText}>重新嘗試</Text>
