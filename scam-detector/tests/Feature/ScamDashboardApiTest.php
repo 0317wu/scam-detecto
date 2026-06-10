@@ -132,6 +132,42 @@ class ScamDashboardApiTest extends TestCase
             ]);
     }
 
+    public function test_admin_stats_include_all_scan_records(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $user = User::factory()->create();
+
+        $this->createScan($user, [
+            'risk_level' => 'warning',
+            'risk_score' => 50,
+            'scam_type' => '釣魚網站',
+            'created_at' => CarbonImmutable::today(),
+        ]);
+
+        ScamScan::create([
+            'visitor_id' => 'v-app-web-session',
+            'input_type' => 'url',
+            'url' => 'https://www.tw-post-gov.xyz',
+            'risk_score' => 95,
+            'risk_level' => 'danger',
+            'scam_type' => '釣魚網站',
+            'summary' => '訪客 App 掃描紀錄',
+            'created_at' => CarbonImmutable::today(),
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/scam/stats')
+            ->assertOk()
+            ->assertJsonPath('data.summary.total_scans', 2)
+            ->assertJsonPath('data.summary.danger_scans', 1)
+            ->assertJsonPath('data.summary.warning_scans', 1)
+            ->assertJsonFragment([
+                'scam_type' => '釣魚網站',
+                'count' => 2,
+            ]);
+    }
+
     public function test_cases_api_returns_active_seeded_cases(): void
     {
         $this->seed();

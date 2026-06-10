@@ -28,7 +28,9 @@ class ScamHistoryController extends Controller
 
         $query = ScamScan::query();
 
-        if ($user && $visitorId) {
+        if ($user?->is_admin) {
+            // Admin history is an operations view, so it should include all scans.
+        } elseif ($user && $visitorId) {
             $query->where(function ($query) use ($user, $visitorId) {
                 $query
                     ->where('user_id', $user->id)

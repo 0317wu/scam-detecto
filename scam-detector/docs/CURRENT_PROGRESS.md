@@ -1,6 +1,6 @@
 # 目前進度總覽
 
-更新日期：2026-05-30
+更新日期：2026-06-10
 
 ## 目前狀態
 
@@ -54,6 +54,7 @@ personal access tokens
 ```text
 未登入：使用 visitor_id 保存與讀取自己的掃描紀錄
 已登入：使用 Bearer token，掃描紀錄綁定 user_id
+管理員：History 與 Stats 可查看全部掃描紀錄，包含 App 訪客掃描
 ```
 
 4. 真 OCR 已完成
@@ -98,6 +99,7 @@ Expo Web 圖片上傳改用 Blob/File，避免瀏覽器 FormData 送出失敗
 App API timeout 提高到 60 秒，避免 OCR + AI 分析時間超過 10 秒
 OCR 失敗時回傳乾淨錯誤代碼，避免 Windows 非 UTF-8 錯誤訊息造成 JSON 500
 網址規則加強：假冒官方/郵政/政府字樣且搭配高風險網域後綴時，會判定為高風險釣魚網站
+管理員後台 History/Stats 可查看全部使用者與訪客掃描紀錄
 .env 不再進入 Git 版控
 ```
 
@@ -106,7 +108,7 @@ OCR 失敗時回傳乾淨錯誤代碼，避免 Windows 非 UTF-8 錯誤訊息造
 最新已推送到 `main`：
 
 ```text
-34220fd Update app API fallback URL
+129dc00 Improve URL validation errors
 ```
 
 ## 驗收結果
@@ -115,7 +117,7 @@ OCR 失敗時回傳乾淨錯誤代碼，避免 Windows 非 UTF-8 錯誤訊息造
 
 ```text
 php artisan test
-49 passed (468 assertions)
+58 passed (586 assertions)
 ```
 
 App 測試：

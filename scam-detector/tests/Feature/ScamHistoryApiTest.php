@@ -99,6 +99,43 @@ class ScamHistoryApiTest extends TestCase
             ->assertJsonPath('data.items.0.user_id', $user->id);
     }
 
+    public function test_admin_can_list_all_history_records(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $user = User::factory()->create();
+
+        $this->createScan($user, [
+            'content' => '登入使用者紀錄',
+            'risk_level' => 'warning',
+        ]);
+
+        ScamScan::create([
+            'visitor_id' => 'v-app-web-session',
+            'input_type' => 'url',
+            'url' => 'https://www.tw-post-gov.xyz',
+            'risk_score' => 95,
+            'risk_level' => 'danger',
+            'scam_type' => '釣魚網站',
+            'summary' => '訪客 App 掃描紀錄',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/scam/history?per_page=5');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.pagination.total', 2);
+
+        $this->assertEqualsCanonicalizing(
+            ['登入使用者紀錄', 'https://www.tw-post-gov.xyz'],
+            array_map(
+                fn (array $item) => $item['content'] ?: $item['url'],
+                $response->json('data.items')
+            )
+        );
+    }
+
     public function test_authenticated_user_with_visitor_id_can_list_own_and_visitor_history(): void
     {
         $user = User::factory()->create();
